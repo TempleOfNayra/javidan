@@ -47,9 +47,6 @@ export default async function Home() {
       <header className="bg-navy-dark border-b border-navy">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gold">
-              Javidan
-            </h1>
             {/* Logo - Center */}
             <div className="absolute left-1/2 transform -translate-x-1/2">
               <img
@@ -58,7 +55,7 @@ export default async function Home() {
                 className="h-14 w-auto"
               />
             </div>
-            <nav className="flex gap-6">
+            <nav className="ml-auto flex gap-6">
               <Link
                 href="/search"
                 className="text-white/80 hover:text-gold transition-colors"
