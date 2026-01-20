@@ -1,25 +1,35 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY) {
-  throw new Error('Please add your Cloudflare R2 credentials to .env.local');
+const isR2Configured = !!(
+  process.env.R2_ACCOUNT_ID &&
+  process.env.R2_ACCESS_KEY_ID &&
+  process.env.R2_SECRET_ACCESS_KEY
+);
+
+if (!isR2Configured) {
+  console.warn('Cloudflare R2 credentials not configured. Media uploads will not work.');
 }
 
 // Cloudflare R2 uses S3-compatible API
-const r2Client = new S3Client({
+const r2Client = isR2Configured ? new S3Client({
   region: 'auto',
   endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
   credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
   },
-});
+}) : null;
 
 export async function uploadToR2(
   file: File | Buffer,
   key: string,
   contentType: string
 ): Promise<string> {
+  if (!isR2Configured || !r2Client) {
+    throw new Error('R2 is not configured. Please add R2 credentials to environment variables.');
+  }
+
   const bucketName = process.env.R2_BUCKET_NAME || 'javidan-media';
 
   let buffer: Buffer;
