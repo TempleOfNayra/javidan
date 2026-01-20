@@ -53,9 +53,9 @@ export default async function Home() {
             {/* Logo - Center */}
             <div className="absolute left-1/2 transform -translate-x-1/2">
               <img
-                src="https://www.clipartmax.com/png/middle/m2i8d3Z5N4N4m2N4_lion-and-sun-emblem-of-iran-iran-lion-vector.png"
+                src="/lion-sun.svg"
                 alt="Lion and Sun - Emblem of Iran"
-                className="h-12 w-auto"
+                className="h-14 w-auto"
               />
             </div>
             <nav className="flex gap-6">
