@@ -98,11 +98,11 @@ export default function SubmitPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0f2537] flex items-center justify-center">
         <div className="max-w-md mx-auto px-4 text-center">
           <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-8">
             <div className="text-green-600 dark:text-green-400 text-6xl mb-4">✓</div>
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">
+            <h2 className="text-2xl font-bold text-[#d4af37] mb-2">
               Submission Successful
             </h2>
             <p className="text-zinc-600 dark:text-zinc-400 mb-4">
@@ -118,12 +118,12 @@ export default function SubmitPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
+    <div className="min-h-screen bg-[#0f2537]">
       {/* Header */}
-      <header className="border-b border-zinc-200 dark:border-zinc-800">
+      <header className="border-b border-[#1a3a52]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-zinc-900 dark:text-white">
+            <Link href="/" className="text-2xl font-bold text-[#d4af37]">
               Javidan
             </Link>
             <nav className="flex gap-6">

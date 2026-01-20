@@ -42,24 +42,24 @@ export default async function Home() {
   const stats = await getStats();
 
   return (
-    <div className="min-h-screen bg-[#0f2537]">
+    <div className="min-h-screen bg-navy-dark">
       {/* Header */}
-      <header className="border-b border-[#1a3a52]">
+      <header className="border-b border-navy">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-[#d4af37]">
+            <h1 className="text-2xl font-bold text-gold">
               Javidan
             </h1>
             <nav className="flex gap-6">
               <Link
                 href="/search"
-                className="text-white/80 hover:text-[#d4af37] transition-colors"
+                className="text-white/80 hover:text-gold transition-colors"
               >
                 Search
               </Link>
               <Link
                 href="/submit"
-                className="text-white/80 hover:text-[#d4af37] transition-colors"
+                className="text-white/80 hover:text-gold transition-colors"
               >
                 Submit
               </Link>
@@ -81,13 +81,13 @@ export default async function Home() {
           <div className="flex gap-4 justify-center">
             <Link
               href="/submit"
-              className="bg-[#d4af37] hover:bg-[#e5c158] text-[#0f2537] px-8 py-3 rounded-lg font-semibold transition-colors"
+              className="bg-gold hover:bg-gold-light text-navy-dark px-8 py-3 rounded-lg font-semibold transition-colors"
             >
               Submit a Record
             </Link>
             <Link
               href="/search"
-              className="border-2 border-[#d4af37] hover:bg-[#d4af37]/10 px-8 py-3 rounded-lg font-semibold transition-colors text-white"
+              className="border-2 border-gold hover:bg-gold/10 px-8 py-3 rounded-lg font-semibold transition-colors text-white"
             >
               Search Archive
             </Link>
@@ -96,24 +96,24 @@ export default async function Home() {
 
         {/* Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-[#1a3a52] rounded-lg border border-[#d4af37]/20 p-6 text-center">
-            <div className="text-4xl font-bold text-[#d4af37] mb-2">
+          <div className="bg-navy rounded-lg border border-gold/20 p-6 text-center">
+            <div className="text-4xl font-bold text-gold mb-2">
               {stats.total.toLocaleString()}
             </div>
             <div className="text-white/80">
               Total Records
             </div>
           </div>
-          <div className="bg-[#1a3a52] rounded-lg border border-[#d4af37]/20 p-6 text-center">
-            <div className="text-4xl font-bold text-[#d4af37] mb-2">
+          <div className="bg-navy rounded-lg border border-gold/20 p-6 text-center">
+            <div className="text-4xl font-bold text-gold mb-2">
               {stats.verified.toLocaleString()}
             </div>
             <div className="text-white/80">
               Verified Records
             </div>
           </div>
-          <div className="bg-[#1a3a52] rounded-lg border border-[#d4af37]/20 p-6 text-center">
-            <div className="text-4xl font-bold text-[#d4af37] mb-2">
+          <div className="bg-navy rounded-lg border border-gold/20 p-6 text-center">
+            <div className="text-4xl font-bold text-gold mb-2">
               {stats.cities.length}
             </div>
             <div className="text-white/80">
@@ -124,7 +124,7 @@ export default async function Home() {
 
         {/* Top Cities */}
         {stats.cities.length > 0 && (
-          <div className="bg-[#1a3a52] rounded-lg border border-[#d4af37]/20 p-8">
+          <div className="bg-navy rounded-lg border border-gold/20 p-8">
             <h3 className="text-2xl font-bold text-white mb-6">
               Most Documented Cities
             </h3>
@@ -134,7 +134,7 @@ export default async function Home() {
                   <span className="text-lg text-white/80">
                     {city._id}
                   </span>
-                  <span className="text-lg font-semibold text-[#d4af37]">
+                  <span className="text-lg font-semibold text-gold">
                     {city.count.toLocaleString()} records
                   </span>
                 </div>
@@ -157,7 +157,7 @@ export default async function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#1a3a52] mt-24">
+      <footer className="border-t border-navy mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-white/60">
           <p>Open-source and community-driven. In memory of those we lost.</p>
         </div>

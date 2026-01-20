@@ -79,12 +79,12 @@ export default async function SearchPage({
   const records = await getRecords(params);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
+    <div className="min-h-screen bg-[#0f2537]">
       {/* Header */}
-      <header className="border-b border-zinc-200 dark:border-zinc-800">
+      <header className="border-b border-[#1a3a52]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-zinc-900 dark:text-white">
+            <Link href="/" className="text-2xl font-bold text-[#d4af37]">
               Javidan
             </Link>
             <nav className="flex gap-6">
