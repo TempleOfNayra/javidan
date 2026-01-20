@@ -21,7 +21,8 @@
    - Choose "Connect your application"
    - Copy the connection string
    - Replace `<password>` with your database user password
-   - Add `/javidan` at the end: `mongodb+srv://user:pass@cluster.mongodb.net/javidan?retryWrites=true&w=majority`
+   - Add `/javidan` at the end
+   - Example format: `mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/javidan?retryWrites=true&w=majority`
 
 ### 2. Set Up Cloudflare R2
 
@@ -49,14 +50,14 @@ Edit `.env.local`:
 
 ```env
 # MongoDB (from step 1)
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/javidan?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/javidan?retryWrites=true&w=majority
 
 # Cloudflare R2 (from step 2)
-R2_ACCOUNT_ID=your_account_id_here
-R2_ACCESS_KEY_ID=your_access_key_here
-R2_SECRET_ACCESS_KEY=your_secret_access_key_here
+R2_ACCOUNT_ID=<your_account_id>
+R2_ACCESS_KEY_ID=<your_access_key_id>
+R2_SECRET_ACCESS_KEY=<your_secret_access_key>
 R2_BUCKET_NAME=javidan-media
-R2_PUBLIC_URL=https://pub-xxxxx.r2.dev  # or your custom domain
+R2_PUBLIC_URL=https://pub-xxxxx.r2.dev
 ```
 
 ### 4. Test Locally
