@@ -50,9 +50,13 @@ export default async function Home() {
             <h1 className="text-2xl font-bold text-gold">
               Javidan
             </h1>
-            {/* Logo Placeholder - Center */}
+            {/* Logo - Center */}
             <div className="absolute left-1/2 transform -translate-x-1/2">
-              <div className="text-4xl">🦁</div>
+              <img
+                src="https://www.clipartmax.com/png/middle/m2i8d3Z5N4N4m2N4_lion-and-sun-emblem-of-iran-iran-lion-vector.png"
+                alt="Lion and Sun - Emblem of Iran"
+                className="h-12 w-auto"
+              />
             </div>
             <nav className="flex gap-6">
               <Link
