@@ -1,46 +1,68 @@
 import Link from 'next/link';
-import { getDatabase } from '@/lib/mongodb';
-import { VictimRecord } from '@/lib/types/record';
+import { sql } from '@/lib/db';
 
 async function getRecords(searchParams: { [key: string]: string | undefined }) {
   try {
-    const db = await getDatabase();
-    const collection = db.collection('records');
+    let query = sql`
+      SELECT
+        r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
+        r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
+        r.submitted_at, r.updated_at,
+        COUNT(m.id) as media_count
+      FROM records r
+      LEFT JOIN media m ON r.id = m.record_id
+    `;
 
-    // Build query
-    const query: any = {};
+    const conditions = [];
+    const params: any[] = [];
 
     if (searchParams.name) {
-      query.$or = [
-        { firstName: { $regex: searchParams.name, $options: 'i' } },
-        { lastName: { $regex: searchParams.name, $options: 'i' } },
-      ];
+      conditions.push(`(LOWER(r.first_name) LIKE LOWER($${params.length + 1}) OR LOWER(r.last_name) LIKE LOWER($${params.length + 1}))`);
+      params.push(`%${searchParams.name}%`);
     }
 
     if (searchParams.location) {
-      query.location = { $regex: searchParams.location, $options: 'i' };
+      conditions.push(`LOWER(r.location) LIKE LOWER($${params.length + 1})`);
+      params.push(`%${searchParams.location}%`);
     }
 
     if (searchParams.year) {
-      query.birthYear = parseInt(searchParams.year);
+      conditions.push(`r.birth_year = $${params.length + 1}`);
+      params.push(parseInt(searchParams.year));
     }
 
-    // Fetch records
-    const records = await collection
-      .find(query)
-      .sort({ submittedAt: -1 })
-      .limit(100)
-      .toArray();
+    let finalQuery = `
+      SELECT
+        r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
+        r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
+        r.submitted_at, r.updated_at,
+        COUNT(m.id) as media_count
+      FROM records r
+      LEFT JOIN media m ON r.id = m.record_id
+      ${conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''}
+      GROUP BY r.id
+      ORDER BY r.submitted_at DESC
+      LIMIT 100
+    `;
 
-    return records.map((record) => ({
-      ...record,
-      _id: record._id.toString(),
-      submittedAt: record.submittedAt.toISOString(),
-      updatedAt: record.updatedAt.toISOString(),
-      media: record.media?.map((m: any) => ({
-        ...m,
-        uploadedAt: m.uploadedAt?.toISOString() || new Date().toISOString(),
-      })) || [],
+    const result = await sql.query(finalQuery, params);
+
+    return result.rows.map((record: any) => ({
+      _id: record.id.toString(),
+      firstName: record.first_name,
+      lastName: record.last_name,
+      location: record.location,
+      birthYear: record.birth_year,
+      nationalId: record.national_id,
+      fatherName: record.father_name,
+      motherName: record.mother_name,
+      verified: record.verified,
+      verificationLevel: record.verification_level || 'unverified',
+      evidenceCount: parseInt(record.evidence_count) || 0,
+      submittedAt: record.submitted_at.toISOString(),
+      updatedAt: record.updated_at.toISOString(),
+      media: [],
+      mediaCount: parseInt(record.media_count) || 0
     }));
   } catch (error) {
     console.error('Error fetching records:', error);
@@ -201,9 +223,9 @@ export default async function SearchPage({
                       <span className="font-medium">Birth Year:</span> {record.birthYear}
                     </p>
                   )}
-                  {record.media?.length > 0 && (
+                  {record.mediaCount > 0 && (
                     <p>
-                      <span className="font-medium">Media:</span> {record.media.length} file(s)
+                      <span className="font-medium">Media:</span> {record.mediaCount} file(s)
                     </p>
                   )}
                   <p className="text-xs text-zinc-500 dark:text-zinc-500 pt-2">

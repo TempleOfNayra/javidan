@@ -1,28 +1,47 @@
 import Link from 'next/link';
-import { getDatabase } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
+import { sql } from '@/lib/db';
 import { notFound } from 'next/navigation';
 
 async function getRecord(id: string) {
   try {
-    const db = await getDatabase();
-    const collection = db.collection('records');
+    // Get record
+    const recordResult = await sql`
+      SELECT * FROM records WHERE id = ${parseInt(id)}
+    `;
 
-    const record = await collection.findOne({ _id: new ObjectId(id) });
-
-    if (!record) {
+    if (recordResult.rows.length === 0) {
       return null;
     }
 
+    const record = recordResult.rows[0];
+
+    // Get media for this record
+    const mediaResult = await sql`
+      SELECT * FROM media WHERE record_id = ${parseInt(id)}
+    `;
+
     return {
-      ...record,
-      _id: record._id.toString(),
-      submittedAt: record.submittedAt.toISOString(),
-      updatedAt: record.updatedAt.toISOString(),
-      media: record.media?.map((m: any) => ({
-        ...m,
-        uploadedAt: m.uploadedAt?.toISOString() || new Date().toISOString(),
-      })) || [],
+      _id: record.id.toString(),
+      firstName: record.first_name,
+      lastName: record.last_name,
+      location: record.location,
+      birthYear: record.birth_year,
+      nationalId: record.national_id,
+      fatherName: record.father_name,
+      motherName: record.mother_name,
+      verified: record.verified,
+      verificationLevel: record.verification_level || 'unverified',
+      evidenceCount: record.evidence_count || 0,
+      submittedAt: record.submitted_at.toISOString(),
+      updatedAt: record.updated_at.toISOString(),
+      media: mediaResult.rows.map((m: any) => ({
+        type: m.type,
+        r2Key: m.r2_key,
+        publicUrl: m.public_url,
+        fileName: m.file_name,
+        fileSize: m.file_size,
+        uploadedAt: m.uploaded_at.toISOString(),
+      })),
     };
   } catch (error) {
     console.error('Error fetching record:', error);

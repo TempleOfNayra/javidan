@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/mongodb';
+import { sql } from '@/lib/db';
 import { uploadToR2, generateFileKey } from '@/lib/r2';
-import { VictimRecord, MediaFile } from '@/lib/types/record';
+import { MediaFile } from '@/lib/types/record';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,10 +11,10 @@ export async function POST(request: NextRequest) {
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
     const location = formData.get('location') as string;
-    const birthYear = formData.get('birthYear') ? parseInt(formData.get('birthYear') as string) : undefined;
-    const nationalId = formData.get('nationalId') as string | undefined;
-    const fatherName = formData.get('fatherName') as string | undefined;
-    const motherName = formData.get('motherName') as string | undefined;
+    const birthYear = formData.get('birthYear') ? parseInt(formData.get('birthYear') as string) : null;
+    const nationalId = formData.get('nationalId') as string | null;
+    const fatherName = formData.get('fatherName') as string | null;
+    const motherName = formData.get('motherName') as string | null;
 
     // Validate required fields
     if (!firstName || !lastName || !location) {
@@ -53,31 +53,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create record
-    const record: Omit<VictimRecord, '_id'> = {
-      firstName,
-      lastName,
-      location,
-      birthYear,
-      nationalId,
-      fatherName,
-      motherName,
-      media: mediaFiles,
-      verified: false,
-      verificationLevel: 'unverified',
-      evidenceCount: mediaFiles.length,
-      submittedAt: new Date(),
-      updatedAt: new Date(),
-    };
+    // Insert record into database
+    const result = await sql`
+      INSERT INTO records (
+        first_name, last_name, location, birth_year, national_id,
+        father_name, mother_name, verified, verification_level, evidence_count
+      ) VALUES (
+        ${firstName}, ${lastName}, ${location}, ${birthYear}, ${nationalId},
+        ${fatherName}, ${motherName}, false, 'unverified', ${mediaFiles.length}
+      )
+      RETURNING id
+    `;
 
-    // Save to database
-    const db = await getDatabase();
-    const collection = db.collection('records');
-    const result = await collection.insertOne(record);
+    const recordId = result.rows[0].id;
+
+    // Insert media files
+    for (const media of mediaFiles) {
+      await sql`
+        INSERT INTO media (
+          record_id, type, r2_key, public_url, file_name, file_size
+        ) VALUES (
+          ${recordId}, ${media.type}, ${media.r2Key}, ${media.publicUrl},
+          ${media.fileName}, ${media.fileSize}
+        )
+      `;
+    }
 
     return NextResponse.json({
       success: true,
-      recordId: result.insertedId.toString(),
+      recordId: recordId.toString(),
       message: 'Record submitted successfully',
     });
 

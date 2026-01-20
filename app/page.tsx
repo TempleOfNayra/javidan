@@ -1,25 +1,32 @@
 import Link from 'next/link';
-import { getDatabase } from '@/lib/mongodb';
+import { sql } from '@/lib/db';
 
 async function getStats() {
   try {
-    const db = await getDatabase();
-    const collection = db.collection('records');
+    // Get total records
+    const totalResult = await sql`SELECT COUNT(*) as count FROM records`;
+    const total = parseInt(totalResult.rows[0].count);
 
-    const totalRecords = await collection.countDocuments();
-    const verifiedRecords = await collection.countDocuments({ verified: true });
+    // Get verified records
+    const verifiedResult = await sql`SELECT COUNT(*) as count FROM records WHERE verified = true`;
+    const verified = parseInt(verifiedResult.rows[0].count);
 
     // Get count by cities (top 5)
-    const cityCounts = await collection.aggregate([
-      { $group: { _id: '$location', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 }
-    ]).toArray();
+    const citiesResult = await sql`
+      SELECT location, COUNT(*) as count
+      FROM records
+      GROUP BY location
+      ORDER BY count DESC
+      LIMIT 5
+    `;
 
     return {
-      total: totalRecords,
-      verified: verifiedRecords,
-      cities: cityCounts
+      total,
+      verified,
+      cities: citiesResult.rows.map(row => ({
+        _id: row.location,
+        count: parseInt(row.count)
+      }))
     };
   } catch (error) {
     console.error('Error fetching stats:', error);
