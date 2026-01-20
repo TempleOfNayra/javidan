@@ -45,14 +45,14 @@ export default async function Home() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-navy-dark border-b border-navy">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
             {/* Logo - Center */}
             <div className="absolute left-1/2 transform -translate-x-1/2">
               <img
                 src="/lion-sun.svg"
                 alt="Lion and Sun - Emblem of Iran"
-                className="h-14 w-auto"
+                className="h-20 w-auto"
               />
             </div>
             <nav className="ml-auto flex gap-6">
