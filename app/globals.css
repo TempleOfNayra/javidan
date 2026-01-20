@@ -1,22 +1,27 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Javidan Color Scheme - Gold Lion on Dark Blue */
+  --navy-blue: #1a3a52;
+  --dark-blue: #0f2537;
+  --gold: #d4af37;
+  --light-gold: #e5c158;
+  --white: #ffffff;
+  --off-white: #f8f9fa;
+
+  --background: var(--dark-blue);
+  --foreground: var(--white);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-navy: var(--navy-blue);
+  --color-dark-navy: var(--dark-blue);
+  --color-gold: var(--gold);
+  --color-light-gold: var(--light-gold);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
