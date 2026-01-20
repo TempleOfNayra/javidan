@@ -1,6 +1,20 @@
-import { sql } from '@vercel/postgres';
+import { createPool } from '@vercel/postgres';
 
-export { sql };
+// Environment variable prefix (shared database)
+const ENV_PREFIX = 'javidanaman_';
+
+// Build prefixed environment variable names
+const getEnvVar = (name: string) => {
+  return process.env[`${ENV_PREFIX}${name}`] || process.env[name] || '';
+};
+
+const connectionString = getEnvVar('POSTGRES_URL');
+
+const pool = createPool({
+  connectionString,
+});
+
+export const sql = pool.sql;
 
 // Initialize database tables
 export async function initDatabase() {
