@@ -1,22 +1,13 @@
 @import "tailwindcss";
 
-:root {
-  /* Javidan Color Scheme - Gold Lion on Dark Blue */
-  --navy-blue: #1a3a52;
-  --dark-blue: #0f2537;
-  --gold: #d4af37;
-  --light-gold: #e5c158;
-  --white: #ffffff;
-  --off-white: #f8f9fa;
-}
-
-@theme inline {
-  --color-navy: var(--navy-blue);
-  --color-dark-navy: var(--dark-blue);
-  --color-gold: var(--gold);
-  --color-light-gold: var(--light-gold);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  /* Javidan Color Palette */
+  --color-navy-dark: #0f2537;
+  --color-navy: #1a3a52;
+  --color-navy-light: #2d5170;
+  --color-gold-dark: #b8941f;
+  --color-gold: #d4af37;
+  --color-gold-light: #e5c158;
 }
 
 body {
