@@ -42,14 +42,18 @@ export default async function Home() {
   const stats = await getStats();
 
   return (
-    <div className="min-h-screen bg-navy-dark">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-navy">
+      <header className="bg-navy-dark border-b border-navy">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gold">
               Javidan
             </h1>
+            {/* Logo Placeholder - Center */}
+            <div className="absolute left-1/2 transform -translate-x-1/2">
+              <div className="text-4xl">🦁</div>
+            </div>
             <nav className="flex gap-6">
               <Link
                 href="/search"
@@ -71,10 +75,10 @@ export default async function Home() {
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold text-white mb-6">
+          <h2 className="text-5xl font-bold text-navy-dark mb-6">
             In Memory of Those We Lost
           </h2>
-          <p className="text-xl text-white/80 max-w-3xl mx-auto mb-8">
+          <p className="text-xl text-gray-700 max-w-3xl mx-auto mb-8">
             A public memorial and archive documenting the lives lost during Iran&apos;s revolution.
             Community-driven, open-source, and dedicated to preserving the truth.
           </p>
@@ -87,7 +91,7 @@ export default async function Home() {
             </Link>
             <Link
               href="/search"
-              className="border-2 border-gold hover:bg-gold/10 px-8 py-3 rounded-lg font-semibold transition-colors text-white"
+              className="border-2 border-gold hover:bg-gold/10 px-8 py-3 rounded-lg font-semibold transition-colors text-navy-dark"
             >
               Search Archive
             </Link>
@@ -145,10 +149,10 @@ export default async function Home() {
 
         {/* Mission Statement */}
         <div className="mt-16 text-center max-w-3xl mx-auto">
-          <h3 className="text-2xl font-bold text-white mb-4">
+          <h3 className="text-2xl font-bold text-navy-dark mb-4">
             Why Javidan?
           </h3>
-          <p className="text-white/80 leading-relaxed">
+          <p className="text-gray-700 leading-relaxed">
             Javidan (جاویدان - eternal) is an open-source, crowd-sourced memorial dedicated to
             documenting and honoring those who lost their lives during Iran&apos;s ongoing revolution.
             We believe in transparency, community verification, and preserving the truth for future generations.
@@ -157,7 +161,7 @@ export default async function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-navy mt-24">
+      <footer className="border-t border-gray-200 mt-24 bg-navy-dark">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-white/60">
           <p>Open-source and community-driven. In memory of those we lost.</p>
         </div>
