@@ -3,49 +3,146 @@ import { sql } from '@/lib/db';
 
 async function getRecords(searchParams: { [key: string]: string | undefined }) {
   try {
-    let query = sql`
-      SELECT
-        r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
-        r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
-        r.submitted_at, r.updated_at,
-        COUNT(m.id) as media_count
-      FROM records r
-      LEFT JOIN media m ON r.id = m.record_id
-    `;
+    // Build query based on search params
+    let result;
 
-    const conditions = [];
-    const params: any[] = [];
-
-    if (searchParams.name) {
-      conditions.push(`(LOWER(r.first_name) LIKE LOWER($${params.length + 1}) OR LOWER(r.last_name) LIKE LOWER($${params.length + 1}))`);
-      params.push(`%${searchParams.name}%`);
+    if (!searchParams.name && !searchParams.location && !searchParams.year) {
+      // No filters - get all records
+      result = await sql`
+        SELECT
+          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
+          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
+          r.submitted_at, r.updated_at,
+          COUNT(m.id) as media_count
+        FROM records r
+        LEFT JOIN media m ON r.id = m.record_id
+        GROUP BY r.id
+        ORDER BY r.submitted_at DESC
+        LIMIT 100
+      `;
+    } else if (searchParams.name && !searchParams.location && !searchParams.year) {
+      // Search by name only
+      const namePattern = `%${searchParams.name}%`;
+      result = await sql`
+        SELECT
+          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
+          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
+          r.submitted_at, r.updated_at,
+          COUNT(m.id) as media_count
+        FROM records r
+        LEFT JOIN media m ON r.id = m.record_id
+        WHERE LOWER(r.first_name) LIKE LOWER(${namePattern}) OR LOWER(r.last_name) LIKE LOWER(${namePattern})
+        GROUP BY r.id
+        ORDER BY r.submitted_at DESC
+        LIMIT 100
+      `;
+    } else if (searchParams.location && !searchParams.name && !searchParams.year) {
+      // Search by location only
+      const locationPattern = `%${searchParams.location}%`;
+      result = await sql`
+        SELECT
+          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
+          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
+          r.submitted_at, r.updated_at,
+          COUNT(m.id) as media_count
+        FROM records r
+        LEFT JOIN media m ON r.id = m.record_id
+        WHERE LOWER(r.location) LIKE LOWER(${locationPattern})
+        GROUP BY r.id
+        ORDER BY r.submitted_at DESC
+        LIMIT 100
+      `;
+    } else if (searchParams.year && !searchParams.name && !searchParams.location) {
+      // Search by year only
+      const year = parseInt(searchParams.year);
+      result = await sql`
+        SELECT
+          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
+          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
+          r.submitted_at, r.updated_at,
+          COUNT(m.id) as media_count
+        FROM records r
+        LEFT JOIN media m ON r.id = m.record_id
+        WHERE r.birth_year = ${year}
+        GROUP BY r.id
+        ORDER BY r.submitted_at DESC
+        LIMIT 100
+      `;
+    } else if (searchParams.name && searchParams.location && !searchParams.year) {
+      // Search by name and location
+      const namePattern = `%${searchParams.name}%`;
+      const locationPattern = `%${searchParams.location}%`;
+      result = await sql`
+        SELECT
+          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
+          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
+          r.submitted_at, r.updated_at,
+          COUNT(m.id) as media_count
+        FROM records r
+        LEFT JOIN media m ON r.id = m.record_id
+        WHERE (LOWER(r.first_name) LIKE LOWER(${namePattern}) OR LOWER(r.last_name) LIKE LOWER(${namePattern}))
+          AND LOWER(r.location) LIKE LOWER(${locationPattern})
+        GROUP BY r.id
+        ORDER BY r.submitted_at DESC
+        LIMIT 100
+      `;
+    } else if (searchParams.name && searchParams.year && !searchParams.location) {
+      // Search by name and year
+      const namePattern = `%${searchParams.name}%`;
+      const year = parseInt(searchParams.year || '0');
+      result = await sql`
+        SELECT
+          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
+          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
+          r.submitted_at, r.updated_at,
+          COUNT(m.id) as media_count
+        FROM records r
+        LEFT JOIN media m ON r.id = m.record_id
+        WHERE (LOWER(r.first_name) LIKE LOWER(${namePattern}) OR LOWER(r.last_name) LIKE LOWER(${namePattern}))
+          AND r.birth_year = ${year}
+        GROUP BY r.id
+        ORDER BY r.submitted_at DESC
+        LIMIT 100
+      `;
+    } else if (searchParams.location && searchParams.year && !searchParams.name) {
+      // Search by location and year
+      const locationPattern = `%${searchParams.location}%`;
+      const year = parseInt(searchParams.year || '0');
+      result = await sql`
+        SELECT
+          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
+          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
+          r.submitted_at, r.updated_at,
+          COUNT(m.id) as media_count
+        FROM records r
+        LEFT JOIN media m ON r.id = m.record_id
+        WHERE LOWER(r.location) LIKE LOWER(${locationPattern})
+          AND r.birth_year = ${year}
+        GROUP BY r.id
+        ORDER BY r.submitted_at DESC
+        LIMIT 100
+      `;
+    } else {
+      // All three filters
+      const namePattern = `%${searchParams.name}%`;
+      const locationPattern = `%${searchParams.location}%`;
+      const year = parseInt(searchParams.year || '0');
+      result = await sql`
+        SELECT
+          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
+          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
+          r.submitted_at, r.updated_at,
+          COUNT(m.id) as media_count
+        FROM records r
+        LEFT JOIN media m ON r.id = m.record_id
+        WHERE (LOWER(r.first_name) LIKE LOWER(${namePattern}) OR LOWER(r.last_name) LIKE LOWER(${namePattern}))
+          AND LOWER(r.location) LIKE LOWER(${locationPattern})
+          AND r.birth_year = ${year}
+        GROUP BY r.id
+        ORDER BY r.submitted_at DESC
+        LIMIT 100
+      `;
     }
-
-    if (searchParams.location) {
-      conditions.push(`LOWER(r.location) LIKE LOWER($${params.length + 1})`);
-      params.push(`%${searchParams.location}%`);
-    }
-
-    if (searchParams.year) {
-      conditions.push(`r.birth_year = $${params.length + 1}`);
-      params.push(parseInt(searchParams.year));
-    }
-
-    let finalQuery = `
-      SELECT
-        r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
-        r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
-        r.submitted_at, r.updated_at,
-        COUNT(m.id) as media_count
-      FROM records r
-      LEFT JOIN media m ON r.id = m.record_id
-      ${conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''}
-      GROUP BY r.id
-      ORDER BY r.submitted_at DESC
-      LIMIT 100
-    `;
-
-    const result = await sql.query(finalQuery, params);
 
     return result.rows.map((record: any) => ({
       _id: record.id.toString(),
