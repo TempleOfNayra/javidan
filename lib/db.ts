@@ -1,7 +1,25 @@
-// Environment variables are set up in instrumentation.ts before any imports
-import { sql } from '@vercel/postgres';
+// Get connection string with optional prefix support
+const DB_PREFIX = process.env.DB_PREFIX || '';
+let connectionString = process.env.POSTGRES_URL;
 
-export { sql };
+if (DB_PREFIX && !connectionString) {
+  connectionString = process.env[`${DB_PREFIX}POSTGRES_URL`];
+}
+
+if (!connectionString) {
+  throw new Error(`POSTGRES_URL not found. Check ${DB_PREFIX ? `DB_PREFIX (${DB_PREFIX})` : 'environment variables'}.`);
+}
+
+// Use @neondatabase/serverless directly with the connection string
+import { neon } from '@neondatabase/serverless';
+
+const rawSql = neon(connectionString);
+
+// Wrap to match @vercel/postgres API (returns {rows} format)
+export const sql = async (strings: TemplateStringsArray, ...values: any[]) => {
+  const rows = await rawSql(strings, ...values);
+  return { rows };
+};
 
 // Initialize database tables
 export async function initDatabase() {
