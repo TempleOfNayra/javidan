@@ -1,23 +1,3 @@
-// Environment variable prefix (shared database)
-const ENV_PREFIX = 'javidanaman_';
-
-// CRITICAL: Set unprefixed env var from prefixed one BEFORE any imports
-const prefixedValue = process.env[`${ENV_PREFIX}POSTGRES_URL`];
-const prefixedPrismaValue = process.env[`${ENV_PREFIX}POSTGRES_PRISMA_URL`];
-const prefixedNonPoolingValue = process.env[`${ENV_PREFIX}POSTGRES_URL_NON_POOLING`];
-
-if (prefixedValue && !process.env.POSTGRES_URL) {
-  process.env.POSTGRES_URL = prefixedValue;
-  console.log(`[DB] Copied javidanaman_POSTGRES_URL to POSTGRES_URL`);
-}
-if (prefixedPrismaValue && !process.env.POSTGRES_PRISMA_URL) {
-  process.env.POSTGRES_PRISMA_URL = prefixedPrismaValue;
-}
-if (prefixedNonPoolingValue && !process.env.POSTGRES_URL_NON_POOLING) {
-  process.env.POSTGRES_URL_NON_POOLING = prefixedNonPoolingValue;
-}
-
-// Now import @vercel/postgres
 import { sql } from '@vercel/postgres';
 
 export { sql };
