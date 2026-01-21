@@ -1,21 +1,4 @@
-// Copy prefixed Vercel environment variables to standard names if prefix is configured
-const DB_PREFIX = process.env.DB_PREFIX || '';
-if (DB_PREFIX) {
-  const prefixedUrl = process.env[`${DB_PREFIX}POSTGRES_URL`];
-  const prefixedPrisma = process.env[`${DB_PREFIX}POSTGRES_PRISMA_URL`];
-  const prefixedNonPooling = process.env[`${DB_PREFIX}POSTGRES_URL_NON_POOLING`];
-
-  if (prefixedUrl && !process.env.POSTGRES_URL) {
-    process.env.POSTGRES_URL = prefixedUrl;
-  }
-  if (prefixedPrisma && !process.env.POSTGRES_PRISMA_URL) {
-    process.env.POSTGRES_PRISMA_URL = prefixedPrisma;
-  }
-  if (prefixedNonPooling && !process.env.POSTGRES_URL_NON_POOLING) {
-    process.env.POSTGRES_URL_NON_POOLING = prefixedNonPooling;
-  }
-}
-
+// Environment variables are set up in instrumentation.ts before any imports
 import { sql } from '@vercel/postgres';
 
 export { sql };
