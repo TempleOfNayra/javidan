@@ -1,4 +1,4 @@
-import { createPool } from '@vercel/postgres';
+import { createPool, sql as vercelSql } from '@vercel/postgres';
 
 // Environment variable prefix (shared database)
 const ENV_PREFIX = 'javidanaman_';
@@ -20,14 +20,13 @@ const getEnvVar = (name: string) => {
 const connectionString = getEnvVar('POSTGRES_URL');
 console.log(`[DB] Final connection string: ${connectionString ? 'EXISTS (length: ' + connectionString.length + ')' : 'NOT FOUND'}`);
 
-// Only create pool if connection string is available
-const pool = connectionString ? createPool({
-  connectionString,
-}) : null;
+// Set the connection string in environment if found
+if (connectionString) {
+  process.env.POSTGRES_URL = connectionString;
+}
 
-export const sql = pool?.sql || (() => {
-  throw new Error('Database not configured. Please set POSTGRES_URL environment variable.');
-}) as any;
+// Export the sql function from @vercel/postgres
+export const sql = vercelSql;
 
 // Initialize database tables
 export async function initDatabase() {
