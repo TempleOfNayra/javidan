@@ -47,6 +47,10 @@ export default async function Home() {
       <header className="bg-navy-dark border-b border-navy">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
+            {/* Version */}
+            <div className="text-white/60 text-sm">
+              v1.0.0
+            </div>
             {/* Logo - Center */}
             <div className="absolute left-1/2 transform -translate-x-1/2">
               <img
