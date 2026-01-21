@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       RETURNING id
     `;
 
-    const recordId = result.rows[0].id;
+    const recordId = (result.rows as any)[0].id;
 
     // Insert media files
     for (const media of mediaFiles) {
