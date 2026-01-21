@@ -1,20 +1,20 @@
 import { neon } from '@neondatabase/serverless';
+import { DATABASE_CONFIG } from './config';
 
 // Lazy connection initialization
 let sqlClient: ReturnType<typeof neon> | null = null;
 
 function getConnection() {
   if (!sqlClient) {
-    // Get connection string with optional prefix support
-    const DB_PREFIX = process.env.DB_PREFIX || '';
-    let connectionString = process.env.POSTGRES_URL;
-
-    if (DB_PREFIX && !connectionString) {
-      connectionString = process.env[`${DB_PREFIX}POSTGRES_URL`];
-    }
+    const varName = `${DATABASE_CONFIG.DB_PREFIX}POSTGRES_URL`;
+    const connectionString = process.env[varName];
 
     if (!connectionString) {
-      throw new Error(`POSTGRES_URL not found. Check ${DB_PREFIX ? `DB_PREFIX (${DB_PREFIX})` : 'environment variables'}.`);
+      // Debug: log all available env vars that start with javidanaman
+      const availableVars = Object.keys(process.env).filter(k => k.includes('javidan') || k.includes('POSTGRES'));
+      console.error('Available env vars:', availableVars);
+      console.error('Looking for:', varName);
+      throw new Error(`Environment variable '${varName}' not found. Available: ${availableVars.join(', ')}`);
     }
 
     sqlClient = neon(connectionString);
