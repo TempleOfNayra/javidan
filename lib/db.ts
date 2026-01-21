@@ -5,10 +5,20 @@ const ENV_PREFIX = 'javidanaman_';
 
 // Build prefixed environment variable names
 const getEnvVar = (name: string) => {
-  return process.env[`${ENV_PREFIX}${name}`] || process.env[name] || '';
+  const prefixedKey = `${ENV_PREFIX}${name}`;
+  const prefixedValue = process.env[prefixedKey];
+  const unprefixedValue = process.env[name];
+
+  // Debug logging
+  console.log(`[DB] Looking for env var: ${name}`);
+  console.log(`[DB] Prefixed key (${prefixedKey}): ${prefixedValue ? 'EXISTS' : 'NOT FOUND'}`);
+  console.log(`[DB] Unprefixed key (${name}): ${unprefixedValue ? 'EXISTS' : 'NOT FOUND'}`);
+
+  return prefixedValue || unprefixedValue || '';
 };
 
 const connectionString = getEnvVar('POSTGRES_URL');
+console.log(`[DB] Final connection string: ${connectionString ? 'EXISTS (length: ' + connectionString.length + ')' : 'NOT FOUND'}`);
 
 // Only create pool if connection string is available
 const pool = connectionString ? createPool({
