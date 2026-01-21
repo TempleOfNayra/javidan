@@ -23,7 +23,7 @@ async function getStats() {
     return {
       total,
       verified,
-      cities: citiesResult.rows.map(row => ({
+      cities: citiesResult.rows.map((row: any) => ({
         _id: row.location,
         count: parseInt(row.count)
       }))

@@ -10,11 +10,14 @@ const getEnvVar = (name: string) => {
 
 const connectionString = getEnvVar('POSTGRES_URL');
 
-const pool = createPool({
+// Only create pool if connection string is available
+const pool = connectionString ? createPool({
   connectionString,
-});
+}) : null;
 
-export const sql = pool.sql;
+export const sql = pool?.sql || (() => {
+  throw new Error('Database not configured. Please set POSTGRES_URL environment variable.');
+}) as any;
 
 // Initialize database tables
 export async function initDatabase() {
