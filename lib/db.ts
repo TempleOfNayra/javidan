@@ -1,3 +1,15 @@
+// Copy prefixed Vercel environment variables to standard names
+// Vercel auto-creates these with the javidanaman_ prefix
+if (process.env.javidanaman_POSTGRES_URL && !process.env.POSTGRES_URL) {
+  process.env.POSTGRES_URL = process.env.javidanaman_POSTGRES_URL;
+}
+if (process.env.javidanaman_POSTGRES_PRISMA_URL && !process.env.POSTGRES_PRISMA_URL) {
+  process.env.POSTGRES_PRISMA_URL = process.env.javidanaman_POSTGRES_PRISMA_URL;
+}
+if (process.env.javidanaman_POSTGRES_URL_NON_POOLING && !process.env.POSTGRES_URL_NON_POOLING) {
+  process.env.POSTGRES_URL_NON_POOLING = process.env.javidanaman_POSTGRES_URL_NON_POOLING;
+}
+
 import { sql } from '@vercel/postgres';
 
 export { sql };
