@@ -111,6 +111,70 @@ export async function initDatabase() {
       ADD COLUMN IF NOT EXISTS instagram_handle VARCHAR(255)
     `;
 
+    // Create ir_agents table (MUST be before external_links to allow foreign key reference)
+    await sql`
+      CREATE TABLE IF NOT EXISTS ir_agents (
+        id SERIAL PRIMARY KEY,
+        first_name VARCHAR(255) NOT NULL,
+        last_name VARCHAR(255) NOT NULL,
+        first_name_en VARCHAR(255),
+        last_name_en VARCHAR(255),
+        agent_type VARCHAR(50) NOT NULL,
+        city VARCHAR(255),
+        country VARCHAR(255),
+        address TEXT,
+        residence_address TEXT,
+        latitude DECIMAL(10, 8),
+        longitude DECIMAL(11, 8),
+        affiliation VARCHAR(255),
+        role VARCHAR(255),
+        twitter_handle VARCHAR(255),
+        instagram_handle VARCHAR(255),
+        additional_info TEXT,
+        hashtags TEXT,
+        search_text TEXT,
+        submitter_twitter_id VARCHAR(255),
+        verified BOOLEAN DEFAULT false,
+        verification_level VARCHAR(50) DEFAULT 'unverified',
+        evidence_count INTEGER DEFAULT 0,
+        submitted_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Create videos table (MUST be before ALTER TABLE media that references it)
+    await sql`
+      CREATE TABLE IF NOT EXISTS videos (
+        id SERIAL PRIMARY KEY,
+        location VARCHAR(255) NOT NULL,
+        description TEXT NOT NULL,
+        hashtags TEXT,
+        submitter_twitter_id VARCHAR(255),
+        verified BOOLEAN DEFAULT false,
+        verification_level VARCHAR(50) DEFAULT 'unverified',
+        evidence_count INTEGER DEFAULT 0,
+        submitted_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Create evidence table (MUST be before ALTER TABLE media that references it)
+    await sql`
+      CREATE TABLE IF NOT EXISTS evidence (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(500) NOT NULL,
+        description TEXT NOT NULL,
+        hashtags TEXT,
+        search_text TEXT,
+        submitter_twitter_id VARCHAR(255),
+        verified BOOLEAN DEFAULT false,
+        verification_level VARCHAR(50) DEFAULT 'unverified',
+        evidence_count INTEGER DEFAULT 0,
+        submitted_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
     // Create external_links table (for security forces and IR agents)
     await sql`
       CREATE TABLE IF NOT EXISTS external_links (
@@ -333,53 +397,6 @@ export async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_security_forces_search_text ON security_forces USING gin(to_tsvector('simple', search_text))
     `;
 
-    // Create videos table
-    await sql`
-      CREATE TABLE IF NOT EXISTS videos (
-        id SERIAL PRIMARY KEY,
-        location VARCHAR(255) NOT NULL,
-        description TEXT NOT NULL,
-        hashtags TEXT,
-        submitter_twitter_id VARCHAR(255),
-        verified BOOLEAN DEFAULT false,
-        verification_level VARCHAR(50) DEFAULT 'unverified',
-        evidence_count INTEGER DEFAULT 0,
-        submitted_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `;
-
-    // Create ir_agents table
-    await sql`
-      CREATE TABLE IF NOT EXISTS ir_agents (
-        id SERIAL PRIMARY KEY,
-        first_name VARCHAR(255) NOT NULL,
-        last_name VARCHAR(255) NOT NULL,
-        first_name_en VARCHAR(255),
-        last_name_en VARCHAR(255),
-        agent_type VARCHAR(50) NOT NULL,
-        city VARCHAR(255),
-        country VARCHAR(255),
-        address TEXT,
-        residence_address TEXT,
-        latitude DECIMAL(10, 8),
-        longitude DECIMAL(11, 8),
-        affiliation VARCHAR(255),
-        role VARCHAR(255),
-        twitter_handle VARCHAR(255),
-        instagram_handle VARCHAR(255),
-        additional_info TEXT,
-        hashtags TEXT,
-        search_text TEXT,
-        submitter_twitter_id VARCHAR(255),
-        verified BOOLEAN DEFAULT false,
-        verification_level VARCHAR(50) DEFAULT 'unverified',
-        evidence_count INTEGER DEFAULT 0,
-        submitted_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
-    `;
-
     // Create or replace function to update search_text for ir_agents
     await sql`
       CREATE OR REPLACE FUNCTION update_ir_agent_search_text()
@@ -463,23 +480,6 @@ export async function initDatabase() {
 
     await sql`
       CREATE INDEX IF NOT EXISTS idx_ir_agents_search_text ON ir_agents USING gin(to_tsvector('simple', search_text))
-    `;
-
-    // Create evidence table
-    await sql`
-      CREATE TABLE IF NOT EXISTS evidence (
-        id SERIAL PRIMARY KEY,
-        title VARCHAR(500) NOT NULL,
-        description TEXT NOT NULL,
-        hashtags TEXT,
-        search_text TEXT,
-        submitter_twitter_id VARCHAR(255),
-        verified BOOLEAN DEFAULT false,
-        verification_level VARCHAR(50) DEFAULT 'unverified',
-        evidence_count INTEGER DEFAULT 0,
-        submitted_at TIMESTAMP DEFAULT NOW(),
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
     `;
 
     // Create or replace function to update search_text for evidence
