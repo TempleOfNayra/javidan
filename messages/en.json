@@ -18,8 +18,8 @@
     "submittedBy": "Submitted by",
     "anonymous": "Anonymous",
     "at": "at",
-    "whyJavidan": "Why Javidan?",
-    "whyJavidanText": "Javidan (جاویدان - eternal) is an open-source, crowd-sourced memorial dedicated to documenting and honoring those who lost their lives during Iran's ongoing revolution. We believe in transparency, community verification, and preserving the truth for future generations.",
+    "openSourceTitle": "Open Source & Transparent",
+    "openSourceText": "This platform is fully open-source for code review, security auditing, and transparency. Review the code, contribute improvements, or verify our commitment to data integrity and user privacy.",
     "footer": "Open-source and community-driven. In memory of those we lost."
   },
   "submissionType": {

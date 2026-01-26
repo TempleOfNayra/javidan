@@ -129,14 +129,24 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
           </div>
         )}
 
-        {/* Mission Statement */}
+        {/* Open Source Notice */}
         <div className="mt-16 text-center max-w-3xl mx-auto">
           <h3 className="text-2xl font-bold text-navy-dark mb-4">
-            {t('home.whyJavidan')}
+            {t('home.openSourceTitle')}
           </h3>
-          <p className="text-gray-700 leading-relaxed">
-            {t('home.whyJavidanText')}
+          <p className="text-gray-700 leading-relaxed mb-4">
+            {t('home.openSourceText')}
           </p>
+          <a
+            href="https://github.com/TempleOfNayra/javidan"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gold hover:text-gold-light font-semibold inline-flex items-center gap-2"
+            dir="ltr"
+          >
+            github.com/TempleOfNayra/javidan
+            <span>→</span>
+          </a>
         </div>
       </main>
 
