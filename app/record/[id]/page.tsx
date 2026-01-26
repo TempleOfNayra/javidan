@@ -172,17 +172,17 @@ export default async function RecordPage({
             </div>
           )}
 
-          {/* Persian Name - Centered */}
-          <h1 className="text-5xl font-bold text-navy-dark mb-3 text-center">
-            {record.firstName} {record.lastName}
-          </h1>
-
-          {/* English Name - Centered, LTR */}
-          {(record.firstNameEn || record.lastNameEn) && (
-            <h2 className="text-3xl font-semibold text-gray-600 mb-4 text-center" dir="ltr">
-              {record.firstNameEn} {record.lastNameEn}
-            </h2>
-          )}
+          {/* Names - Side by Side */}
+          <div className="flex justify-between items-baseline w-full max-w-3xl mb-4">
+            <h1 className="text-5xl font-bold text-navy-dark" dir="rtl">
+              {record.firstName} {record.lastName}
+            </h1>
+            {(record.firstNameEn || record.lastNameEn) && (
+              <h2 className="text-3xl font-semibold text-gray-600" dir="ltr">
+                {record.firstNameEn} {record.lastNameEn}
+              </h2>
+            )}
+          </div>
 
           {/* Verification Badge */}
           <div className="mb-4">

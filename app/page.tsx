@@ -4,6 +4,8 @@ import Footer from '@/components/Footer';
 
 async function getRecentRecords() {
   try {
+    console.log('[HOME PAGE] Starting to fetch recent records...');
+
     // Get recent records with media
     const recordsResult = await sql`
       SELECT r.*,
@@ -16,7 +18,10 @@ async function getRecentRecords() {
       LIMIT 10
     `;
 
-    return recordsResult.rows.map((row: any) => ({
+    console.log('[HOME PAGE] Query completed. Rows returned:', recordsResult.rows.length);
+    console.log('[HOME PAGE] Raw data:', JSON.stringify(recordsResult.rows, null, 2));
+
+    const mappedRecords = recordsResult.rows.map((row: any) => ({
       id: row.id.toString(),
       firstName: row.first_name,
       lastName: row.last_name,
@@ -26,8 +31,12 @@ async function getRecentRecords() {
       submittedAt: row.submitted_at.toISOString(),
       media: row.media ? row.media[0] : null,
     }));
+
+    console.log('[HOME PAGE] Mapped records:', JSON.stringify(mappedRecords, null, 2));
+    return mappedRecords;
   } catch (error) {
-    console.error('Error fetching recent records:', error);
+    console.error('[HOME PAGE] Error fetching recent records:', error);
+    console.error('[HOME PAGE] Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
     return [];
   }
 }

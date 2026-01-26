@@ -5,24 +5,30 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/LanguageContext';
 import Header from '@/components/Header';
 
-interface SearchRecord {
+type Category = 'victims' | 'agents' | 'forces' | 'videos' | 'documents';
+
+interface SearchResult {
   id: number;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   first_name_en?: string;
   last_name_en?: string;
-  location: string;
+  location?: string;
+  city?: string;
+  title?: string;
+  description?: string;
   birth_year?: number;
-  national_id?: string;
-  father_name?: string;
-  mother_name?: string;
+  agent_type?: string;
+  affiliation?: string;
+  role?: string;
+  organization?: string;
+  rank_position?: string;
+  victim_status?: string;
   verified: boolean;
   verification_level: string;
   evidence_count: number;
-  victim_status?: string;
   submitted_at: string;
-  updated_at: string;
-  victim_picture_url?: string;
+  media?: Array<{ url: string; type: string }> | null;
 }
 
 const victimStatusLabels: Record<string, { en: string; fa: string }> = {
@@ -34,41 +40,80 @@ const victimStatusLabels: Record<string, { en: string; fa: string }> = {
   other: { en: 'Other', fa: 'سایر' },
 };
 
+const categoryEndpoints: Record<Category, string> = {
+  victims: '/api/victims',
+  agents: '/api/agents',
+  forces: '/api/supforces',
+  videos: '/api/videos',
+  documents: '/api/docts',
+};
+
+const categoryLabels: Record<Category, { en: string; fa: string }> = {
+  victims: { en: 'Victims', fa: 'قربانیان' },
+  agents: { en: 'IR Agents', fa: 'عوامل رژیم' },
+  forces: { en: 'Security Forces', fa: 'نیروهای امنیتی' },
+  videos: { en: 'Videos', fa: 'ویدئوها' },
+  documents: { en: 'Documents', fa: 'اسناد' },
+};
+
 export default function SearchPage() {
   const { t, language } = useLanguage();
+  const [selectedCategory, setSelectedCategory] = useState<Category>('victims');
   const [searchQuery, setSearchQuery] = useState('');
-  const [records, setRecords] = useState<SearchRecord[]>([]);
+  const [allResults, setAllResults] = useState<SearchResult[]>([]);
+  const [filteredResults, setFilteredResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true);
 
-  // Debounced search effect
+  // Fetch all data when category changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      performSearch(searchQuery);
-    }, 300); // 300ms debounce
+    fetchCategoryData();
+  }, [selectedCategory]);
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Initial load
+  // Filter results when search query changes
   useEffect(() => {
-    performSearch('');
-  }, []);
+    if (searchQuery.trim() === '') {
+      setFilteredResults(allResults);
+    } else {
+      const lowerQuery = searchQuery.toLowerCase();
+      const filtered = allResults.filter((item) => {
+        const searchableText = [
+          item.first_name,
+          item.last_name,
+          item.first_name_en,
+          item.last_name_en,
+          item.location,
+          item.city,
+          item.title,
+          item.description,
+          item.affiliation,
+          item.role,
+          item.organization,
+        ].filter(Boolean).join(' ').toLowerCase();
 
-  const performSearch = async (query: string) => {
+        return searchableText.includes(lowerQuery);
+      });
+      setFilteredResults(filtered);
+    }
+  }, [searchQuery, allResults]);
+
+  const fetchCategoryData = async () => {
     setLoading(true);
+    setSearchQuery(''); // Clear search when switching categories
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const endpoint = categoryEndpoints[selectedCategory];
+      const response = await fetch(`${endpoint}?limit=1000`);
       const data = await response.json();
 
       if (data.success) {
-        setRecords(data.records);
+        setAllResults(data.data || []);
+        setFilteredResults(data.data || []);
       }
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('Error fetching data:', error);
+      setAllResults([]);
+      setFilteredResults([]);
     } finally {
       setLoading(false);
-      setInitialLoad(false);
     }
   };
 
@@ -105,126 +150,235 @@ export default function SearchPage() {
     }
   };
 
+  const getResultImage = (result: SearchResult) => {
+    if (result.media && result.media.length > 0) {
+      const imageMedia = result.media.find(m => m.type === 'image');
+      if (imageMedia) return imageMedia.url;
+    }
+    return null;
+  };
+
+  const getResultTitle = (result: SearchResult) => {
+    if (result.title) return result.title;
+    if (result.first_name && result.last_name) {
+      return `${result.first_name} ${result.last_name}`;
+    }
+    return 'Unknown';
+  };
+
+  const getResultLocation = (result: SearchResult) => {
+    return result.location || result.city || '';
+  };
+
+  const slugify = (text?: string) => {
+    if (!text) return '';
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
+  const getDetailPageUrl = (result: SearchResult) => {
+    const slug = slugify(result.first_name_en && result.last_name_en
+      ? `${result.first_name_en}-${result.last_name_en}`
+      : result.title);
+
+    switch (selectedCategory) {
+      case 'victims':
+        return `/record/${result.id}${slug ? '/' + slug : ''}`;
+      case 'agents':
+        return `/agent/${result.id}${slug ? '/' + slug : ''}`;
+      case 'forces':
+        return `/force/${result.id}${slug ? '/' + slug : ''}`;
+      case 'videos':
+        return `/video/${result.id}${slug ? '/' + slug : ''}`;
+      case 'documents':
+        return `/document/${result.id}${slug ? '/' + slug : ''}`;
+      default:
+        return `/record/${result.id}`;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Search Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-navy-dark mb-4">
-            {t('search.title')}
-          </h1>
-
-          {/* Single Search Field */}
-          <div className="max-w-2xl">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('search.searchPlaceholder')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent text-lg"
-              dir={language === 'fa' ? 'rtl' : 'ltr'}
-            />
+        <div className="flex gap-8">
+          {/* Left Sidebar - Category Selection */}
+          <div className="w-64 flex-shrink-0">
+            <h2 className="text-xl font-bold text-navy-dark mb-4" dir={language === 'fa' ? 'rtl' : 'ltr'}>
+              {language === 'fa' ? 'جستجو در' : 'Search in'}
+            </h2>
+            <nav className="space-y-2">
+              {(Object.keys(categoryLabels) as Category[]).map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`w-full text-center px-4 py-3 rounded-lg transition-colors ${
+                    selectedCategory === category
+                      ? 'bg-gold text-navy-dark font-semibold'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {categoryLabels[category][language]}
+                </button>
+              ))}
+            </nav>
           </div>
 
-          {/* Results Count */}
-          <div className="mt-4 text-gray-600">
-            {loading && !initialLoad ? (
-              <span>{t('search.searching')}</span>
+          {/* Main Content - Search and Results */}
+          <div className="flex-1">
+            {/* Search Header */}
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold text-navy-dark mb-4">
+                {t('search.title')}
+              </h1>
+
+              {/* Search Field */}
+              <div className="max-w-2xl">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t('search.searchPlaceholder')}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent text-lg"
+                  dir={language === 'fa' ? 'rtl' : 'ltr'}
+                />
+              </div>
+
+              {/* Results Count */}
+              <div className="mt-4 text-gray-600">
+                {loading ? (
+                  <span>{t('search.searching')}</span>
+                ) : (
+                  <span>
+                    {filteredResults.length} {t('search.recordsFound')}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Results */}
+            {filteredResults.length === 0 && !loading ? (
+              <div className="text-center py-16">
+                <p className="text-xl text-gray-500 mb-4">{t('search.noRecords')}</p>
+                <Link
+                  href="/"
+                  className="text-gold hover:text-gold-light font-semibold"
+                >
+                  {t('search.submitFirst')}
+                </Link>
+              </div>
             ) : (
-              <span>
-                {records.length} {t('search.recordsFound')}
-              </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredResults.map((result) => {
+                  const imageUrl = getResultImage(result);
+                  const title = getResultTitle(result);
+                  const location = getResultLocation(result);
+
+                  return (
+                    <Link
+                      key={result.id}
+                      href={getDetailPageUrl(result)}
+                      className="block bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                    >
+                      {/* Image */}
+                      {imageUrl ? (
+                        <div className="w-full h-48 bg-gray-100">
+                          <img
+                            src={imageUrl}
+                            alt={title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+                          <span className="text-gray-400 text-6xl">
+                            {selectedCategory === 'videos' ? '📹' : selectedCategory === 'documents' ? '📄' : '👤'}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="p-4">
+                        {/* Title/Name */}
+                        <h3 className="text-xl font-bold text-navy-dark mb-1" dir={language === 'fa' ? 'rtl' : 'ltr'}>
+                          {title}
+                        </h3>
+
+                        {/* English Name */}
+                        {(result.first_name_en || result.last_name_en) && (
+                          <p className="text-sm text-gray-600 mb-2" dir="ltr">
+                            {result.first_name_en} {result.last_name_en}
+                          </p>
+                        )}
+
+                        {/* Victim Status */}
+                        {result.victim_status && (
+                          <p className="text-sm text-gray-700 mb-2">
+                            {victimStatusLabels[result.victim_status]?.[language] || result.victim_status}
+                          </p>
+                        )}
+
+                        {/* Agent Type */}
+                        {result.agent_type && (
+                          <p className="text-sm text-gray-700 mb-2">
+                            {result.agent_type === 'internal' ? (language === 'fa' ? 'داخلی' : 'Internal') : (language === 'fa' ? 'خارجی' : 'External')}
+                          </p>
+                        )}
+
+                        {/* Role/Affiliation */}
+                        {result.role && (
+                          <p className="text-sm text-gray-600 mb-2 line-clamp-1" dir={language === 'fa' ? 'rtl' : 'ltr'}>
+                            {result.role}
+                          </p>
+                        )}
+
+                        {/* Location */}
+                        {location && (
+                          <p className="text-sm text-gray-600 mb-2">
+                            📍 {location}
+                          </p>
+                        )}
+
+                        {/* Birth Year */}
+                        {result.birth_year && (
+                          <p className="text-sm text-gray-600 mb-2">
+                            🎂 {result.birth_year}
+                          </p>
+                        )}
+
+                        {/* Description (for videos/documents) */}
+                        {result.description && (
+                          <p className="text-sm text-gray-600 mb-2 line-clamp-2" dir={language === 'fa' ? 'rtl' : 'ltr'}>
+                            {result.description}
+                          </p>
+                        )}
+
+                        {/* Verification Badge */}
+                        <div className="mt-3">
+                          {getVerificationBadge(result.verification_level)}
+                        </div>
+
+                        {/* Evidence Count */}
+                        {result.evidence_count > 0 && (
+                          <p className="text-xs text-gray-500 mt-2">
+                            📎 {result.evidence_count} {t('search.mediaCount')}
+                          </p>
+                        )}
+
+                        {/* Submitted Date */}
+                        <p className="text-xs text-gray-400 mt-2">
+                          {t('search.submitted')} {new Date(result.submitted_at).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
-
-        {/* Results */}
-        {records.length === 0 && !loading && !initialLoad ? (
-          <div className="text-center py-16">
-            <p className="text-xl text-gray-500 mb-4">{t('search.noRecords')}</p>
-            <Link
-              href="/"
-              className="text-gold hover:text-gold-light font-semibold"
-            >
-              {t('search.submitFirst')}
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {records.map((record) => (
-              <Link
-                key={record.id}
-                href={`/record/${record.id}`}
-                className="block bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-              >
-                {/* Victim Picture */}
-                {record.victim_picture_url ? (
-                  <div className="w-full h-48 bg-gray-100">
-                    <img
-                      src={record.victim_picture_url}
-                      alt={`${record.first_name} ${record.last_name}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-                    <span className="text-gray-400 text-6xl">👤</span>
-                  </div>
-                )}
-
-                <div className="p-4">
-                  {/* Names */}
-                  <h3 className="text-xl font-bold text-navy-dark mb-1" dir={language === 'fa' ? 'rtl' : 'ltr'}>
-                    {record.first_name} {record.last_name}
-                  </h3>
-                  {(record.first_name_en || record.last_name_en) && (
-                    <p className="text-sm text-gray-600 mb-2" dir="ltr">
-                      {record.first_name_en} {record.last_name_en}
-                    </p>
-                  )}
-
-                  {/* Victim Status */}
-                  {record.victim_status && (
-                    <p className="text-sm text-gray-700 mb-2">
-                      {victimStatusLabels[record.victim_status]?.[language] || record.victim_status}
-                    </p>
-                  )}
-
-                  {/* Location */}
-                  <p className="text-sm text-gray-600 mb-2">
-                    📍 {record.location}
-                  </p>
-
-                  {/* Birth Year */}
-                  {record.birth_year && (
-                    <p className="text-sm text-gray-600 mb-2">
-                      {language === 'fa' ? '🎂' : '🎂'} {record.birth_year}
-                    </p>
-                  )}
-
-                  {/* Verification Badge */}
-                  <div className="mt-3">
-                    {getVerificationBadge(record.verification_level)}
-                  </div>
-
-                  {/* Evidence Count */}
-                  {record.evidence_count > 0 && (
-                    <p className="text-xs text-gray-500 mt-2">
-                      📎 {record.evidence_count} {t('search.mediaCount')}
-                    </p>
-                  )}
-
-                  {/* Submitted Date */}
-                  <p className="text-xs text-gray-400 mt-2">
-                    {t('search.submitted')} {new Date(record.submitted_at).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
       </main>
     </div>
   );
