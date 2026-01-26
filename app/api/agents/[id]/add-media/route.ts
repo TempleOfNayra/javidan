@@ -66,14 +66,27 @@ export async function POST(
       );
     }
 
+    // Check if there's an existing primary image
+    const existingPrimary = await sql`
+      SELECT id FROM media
+      WHERE ir_agent_id = ${agentId} AND is_primary = true
+      LIMIT 1
+    `;
+
+    const hasPrimaryImage = existingPrimary.rows.length > 0;
+
     // Insert all media into database
-    for (const fileData of uploadedFiles) {
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      const fileData = uploadedFiles[i];
+      // Set first image as primary if no primary exists and this is an image
+      const isPrimary = !hasPrimaryImage && i === 0 && fileData.type === 'image';
+
       await sql`
         INSERT INTO media (
           ir_agent_id, type, r2_key, public_url, file_name, file_size, is_primary
         ) VALUES (
           ${agentId}, ${fileData.type}, ${fileData.r2Key}, ${fileData.publicUrl},
-          ${fileData.fileName}, ${fileData.fileSize}, false
+          ${fileData.fileName}, ${fileData.fileSize}, ${isPrimary}
         )
       `;
     }

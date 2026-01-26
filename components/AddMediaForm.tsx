@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface AddMediaFormProps {
   agentId: string;
 }
 
 export default function AddMediaForm({ agentId }: AddMediaFormProps) {
+  const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
   const [submitterTwitterId, setSubmitterTwitterId] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -128,11 +130,16 @@ export default function AddMediaForm({ agentId }: AddMediaFormProps) {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage({ type: 'success', text: `${data.filesUploaded} فایل با موفقیت آپلود شد. صفحه را رفرش کنید.` });
+        setMessage({ type: 'success', text: `${data.filesUploaded} فایل با موفقیت آپلود شد.` });
         setFiles([]);
         setSubmitterTwitterId('');
         setUploadProgress({});
         if (fileInputRef.current) fileInputRef.current.value = '';
+
+        // Refresh the page to show the new media
+        setTimeout(() => {
+          router.refresh();
+        }, 500);
       } else {
         setMessage({ type: 'error', text: data.error || 'خطا در آپلود فایل‌ها' });
       }

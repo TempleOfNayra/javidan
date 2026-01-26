@@ -3,6 +3,7 @@ import { sql } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import Header from '@/components/Header';
 import AddMediaForm from '@/components/AddMediaForm';
+import AddProfilePicture from '@/components/AddProfilePicture';
 
 async function getAgent(id: string) {
   try {
@@ -107,29 +108,42 @@ export default async function AgentPage({
         </Link>
 
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          {/* Agent Image */}
-          {primaryImage && (
-            <div className="w-full h-96 bg-gray-100">
-              <img
-                src={primaryImage}
-                alt={`${agent.firstName} ${agent.lastName}`}
-                className="w-full h-full object-contain"
-              />
-            </div>
-          )}
-
           {/* Agent Info */}
           <div className="p-8">
-            {/* Names */}
-            <div className="flex justify-between items-baseline mb-6">
-              <h1 className="text-4xl font-bold text-navy-dark" dir="rtl">
-                {agent.firstName} {agent.lastName}
-              </h1>
-              {(agent.firstNameEn || agent.lastNameEn) && (
-                <p className="text-2xl text-gray-600" dir="ltr">
-                  {agent.firstNameEn} {agent.lastNameEn}
-                </p>
-              )}
+            {/* Names with Profile Picture */}
+            <div className="flex items-start gap-6 mb-6">
+              {/* Left side: Profile Picture */}
+              <div className="flex-shrink-0">
+                {primaryImage ? (
+                  <img
+                    src={primaryImage}
+                    alt={`${agent.firstName} ${agent.lastName}`}
+                    className="w-48 h-48 object-cover rounded-lg border-2 border-gray-200"
+                  />
+                ) : (
+                  <div>
+                    <div className="w-48 h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center">
+                      <span className="text-gray-400 text-5xl mb-2">👤</span>
+                      <p className="text-sm text-gray-500 text-center px-2" dir="rtl">
+                        بدون تصویر
+                      </p>
+                    </div>
+                    <AddProfilePicture agentId={agent._id} />
+                  </div>
+                )}
+              </div>
+
+              {/* Right side: Names */}
+              <div className="flex-1 flex justify-between items-baseline">
+                <h1 className="text-4xl font-bold text-navy-dark" dir="rtl">
+                  {agent.firstName} {agent.lastName}
+                </h1>
+                {(agent.firstNameEn || agent.lastNameEn) && (
+                  <p className="text-2xl text-gray-600" dir="ltr">
+                    {agent.firstNameEn} {agent.lastNameEn}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Agent Type */}
