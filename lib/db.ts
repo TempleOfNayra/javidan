@@ -65,6 +65,31 @@ export async function initDatabase() {
       )
     `;
 
+    // Create twitter_links table (one-to-many relation)
+    await sql`
+      CREATE TABLE IF NOT EXISTS twitter_links (
+        id SERIAL PRIMARY KEY,
+        record_id INTEGER REFERENCES records(id) ON DELETE CASCADE,
+        url VARCHAR(500) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `;
+
+    // Add new columns if they don't exist
+    await sql`
+      ALTER TABLE records
+      ADD COLUMN IF NOT EXISTS hashtags TEXT,
+      ADD COLUMN IF NOT EXISTS additional_info TEXT,
+      ADD COLUMN IF NOT EXISTS submitter_twitter_id VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS victim_status VARCHAR(50) DEFAULT 'killed'
+    `;
+
+    // Remove old twitter_url column if it exists (migration)
+    await sql`
+      ALTER TABLE records
+      DROP COLUMN IF EXISTS twitter_url
+    `;
+
     // Create indexes for better search performance
     await sql`
       CREATE INDEX IF NOT EXISTS idx_records_location ON records(location)

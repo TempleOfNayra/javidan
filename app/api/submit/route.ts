@@ -15,6 +15,13 @@ export async function POST(request: NextRequest) {
     const nationalId = formData.get('nationalId') as string | null;
     const fatherName = formData.get('fatherName') as string | null;
     const motherName = formData.get('motherName') as string | null;
+    const hashtags = formData.get('hashtags') as string | null;
+    const additionalInfo = formData.get('additionalInfo') as string | null;
+    const twitterUrl1 = formData.get('twitterUrl1') as string | null;
+    const twitterUrl2 = formData.get('twitterUrl2') as string | null;
+    const twitterUrl3 = formData.get('twitterUrl3') as string | null;
+    const submitterTwitterId = formData.get('submitterTwitterId') as string | null;
+    const victimStatus = formData.get('victimStatus') as string || 'killed';
 
     // Validate required fields
     if (!firstName || !lastName || !location) {
@@ -57,15 +64,26 @@ export async function POST(request: NextRequest) {
     const result = await sql`
       INSERT INTO records (
         first_name, last_name, location, birth_year, national_id,
-        father_name, mother_name, verified, verification_level, evidence_count
+        father_name, mother_name, hashtags, additional_info, submitter_twitter_id,
+        victim_status, verified, verification_level, evidence_count
       ) VALUES (
         ${firstName}, ${lastName}, ${location}, ${birthYear}, ${nationalId},
-        ${fatherName}, ${motherName}, false, 'unverified', ${mediaFiles.length}
+        ${fatherName}, ${motherName}, ${hashtags}, ${additionalInfo}, ${submitterTwitterId},
+        ${victimStatus}, false, 'unverified', ${mediaFiles.length}
       )
       RETURNING id
     `;
 
     const recordId = (result.rows as any)[0].id;
+
+    // Insert Twitter URLs
+    const twitterUrls = [twitterUrl1, twitterUrl2, twitterUrl3].filter(url => url && url.trim());
+    for (const url of twitterUrls) {
+      await sql`
+        INSERT INTO twitter_links (record_id, url)
+        VALUES (${recordId}, ${url})
+      `;
+    }
 
     // Insert media files
     for (const media of mediaFiles) {

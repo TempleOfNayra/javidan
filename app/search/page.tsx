@@ -176,24 +176,33 @@ export default async function SearchPage({
   const records = await getRecords(params);
 
   return (
-    <div className="min-h-screen bg-[#0f2537]">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-[#1a3a52]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="bg-navy-dark border-b border-navy">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-[#d4af37]">
-              Javidan
-            </Link>
-            <nav className="flex gap-6">
+            {/* Version */}
+            <div className="text-white/60 text-sm">
+              v1.0.1
+            </div>
+            {/* Logo - Center */}
+            <a href="/" className="absolute left-1/2 transform -translate-x-1/2">
+              <img
+                src="/lion-sun.svg"
+                alt="Lion and Sun - Emblem of Iran"
+                className="h-20 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </a>
+            <nav className="ml-auto flex gap-6">
               <Link
                 href="/search"
-                className="text-zinc-900 dark:text-white font-semibold"
+                className="text-white/80 hover:text-gold transition-colors font-semibold"
               >
                 Search
               </Link>
               <Link
                 href="/submit"
-                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+                className="text-white/80 hover:text-gold transition-colors"
               >
                 Submit
               </Link>
@@ -205,19 +214,19 @@ export default async function SearchPage({
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Search Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-4">
+          <h1 className="text-4xl font-bold text-navy-dark mb-4">
             Search Archive
           </h1>
-          <p className="text-lg text-zinc-600 dark:text-zinc-400">
+          <p className="text-lg text-gray-700">
             {records.length} records found
           </p>
         </div>
 
         {/* Search Filters */}
-        <div className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-6 mb-8">
+        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8 shadow-sm">
           <form method="GET" className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                 Name
               </label>
               <input
@@ -226,12 +235,12 @@ export default async function SearchPage({
                 name="name"
                 defaultValue={params.name}
                 placeholder="First or last name"
-                className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
               />
             </div>
 
             <div>
-              <label htmlFor="location" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
                 Location
               </label>
               <input
@@ -240,12 +249,12 @@ export default async function SearchPage({
                 name="location"
                 defaultValue={params.location}
                 placeholder="City or province"
-                className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
               />
             </div>
 
             <div>
-              <label htmlFor="year" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
                 Birth Year
               </label>
               <input
@@ -254,20 +263,20 @@ export default async function SearchPage({
                 name="year"
                 defaultValue={params.year}
                 placeholder="e.g., 1995"
-                className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
               />
             </div>
 
             <div className="md:col-span-3 flex gap-4">
               <button
                 type="submit"
-                className="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-2 rounded-lg font-semibold transition-colors"
+                className="bg-gold hover:bg-gold-light text-navy-dark px-6 py-2 rounded-lg font-semibold transition-colors"
               >
                 Search
               </button>
               <Link
                 href="/search"
-                className="border border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600 px-6 py-2 rounded-lg font-semibold transition-colors text-zinc-900 dark:text-white"
+                className="border-2 border-gold hover:bg-gold/10 px-6 py-2 rounded-lg font-semibold transition-colors text-navy-dark"
               >
                 Clear
               </Link>
@@ -278,12 +287,12 @@ export default async function SearchPage({
         {/* Results */}
         {records.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-xl text-zinc-600 dark:text-zinc-400 mb-4">
+            <p className="text-xl text-gray-600 mb-4">
               No records found
             </p>
             <Link
               href="/submit"
-              className="text-zinc-900 dark:text-white font-semibold hover:underline"
+              className="text-gold hover:text-gold-light font-semibold hover:underline"
             >
               Submit the first record
             </Link>
@@ -294,10 +303,10 @@ export default async function SearchPage({
               <Link
                 key={record._id}
                 href={`/record/${record._id}`}
-                className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-6 hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
+                className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gold transition-colors shadow-sm"
               >
                 <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">
+                  <h3 className="text-xl font-semibold text-navy-dark">
                     {record.firstName} {record.lastName}
                   </h3>
                   {record.verified ? (
@@ -311,7 +320,7 @@ export default async function SearchPage({
                   )}
                 </div>
 
-                <div className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                <div className="space-y-2 text-sm text-gray-600">
                   <p>
                     <span className="font-medium">Location:</span> {record.location}
                   </p>
@@ -325,7 +334,7 @@ export default async function SearchPage({
                       <span className="font-medium">Media:</span> {record.mediaCount} file(s)
                     </p>
                   )}
-                  <p className="text-xs text-zinc-500 dark:text-zinc-500 pt-2">
+                  <p className="text-xs text-gray-500 pt-2">
                     Submitted: {new Date(record.submittedAt).toLocaleDateString()}
                   </p>
                 </div>

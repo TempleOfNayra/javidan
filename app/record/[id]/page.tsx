@@ -20,6 +20,11 @@ async function getRecord(id: string) {
       SELECT * FROM media WHERE record_id = ${parseInt(id)}
     `;
 
+    // Get Twitter links for this record
+    const twitterResult = await sql`
+      SELECT * FROM twitter_links WHERE record_id = ${parseInt(id)} ORDER BY created_at
+    `;
+
     return {
       _id: record.id.toString(),
       firstName: record.first_name,
@@ -29,6 +34,14 @@ async function getRecord(id: string) {
       nationalId: record.national_id,
       fatherName: record.father_name,
       motherName: record.mother_name,
+      hashtags: record.hashtags,
+      additionalInfo: record.additional_info,
+      submitterTwitterId: record.submitter_twitter_id,
+      twitterLinks: twitterResult.rows.map((t: any) => ({
+        id: t.id,
+        url: t.url,
+        createdAt: t.created_at.toISOString(),
+      })),
       verified: record.verified,
       verificationLevel: record.verification_level || 'unverified',
       evidenceCount: record.evidence_count || 0,
@@ -65,62 +78,63 @@ export default async function RecordPage({
     switch (record.verificationLevel) {
       case 'trusted':
         return (
-          <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg px-4 py-2">
-            <span className="text-green-600 dark:text-green-400 text-2xl">✓✓✓</span>
-            <span className="text-green-700 dark:text-green-300 font-semibold">
-              Trusted Verified
-            </span>
-          </div>
+          <span className="text-sm text-green-600 flex items-center gap-1">
+            <span className="text-base">✓✓✓</span>
+            Trusted Verified
+          </span>
         );
       case 'document':
         return (
-          <div className="flex items-center gap-2 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg px-4 py-2">
-            <span className="text-green-600 dark:text-green-400 text-2xl">✓✓</span>
-            <span className="text-green-700 dark:text-green-300 font-semibold">
-              Document Verified
-            </span>
-          </div>
+          <span className="text-sm text-green-600 flex items-center gap-1">
+            <span className="text-base">✓✓</span>
+            Document Verified
+          </span>
         );
       case 'community':
         return (
-          <div className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2">
-            <span className="text-blue-600 dark:text-blue-400 text-2xl">✓</span>
-            <span className="text-blue-700 dark:text-blue-300 font-semibold">
-              Community Verified
-            </span>
-          </div>
+          <span className="text-sm text-blue-600 flex items-center gap-1">
+            <span className="text-base">✓</span>
+            Community Verified
+          </span>
         );
       default:
         return (
-          <div className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg px-4 py-2">
-            <span className="text-yellow-600 dark:text-yellow-400 text-2xl">⚠</span>
-            <span className="text-yellow-700 dark:text-yellow-300 font-semibold">
-              Unverified
-            </span>
-          </div>
+          <span className="text-sm text-yellow-600 flex items-center gap-1">
+            <span className="text-base">⚠</span>
+            Unverified
+          </span>
         );
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0f2537]">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-[#1a3a52]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="bg-navy-dark border-b border-navy">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-[#d4af37]">
-              Javidan
-            </Link>
-            <nav className="flex gap-6">
+            {/* Version */}
+            <div className="text-white/60 text-sm">
+              v1.0.1
+            </div>
+            {/* Logo - Center */}
+            <a href="/" className="absolute left-1/2 transform -translate-x-1/2">
+              <img
+                src="/lion-sun.svg"
+                alt="Lion and Sun - Emblem of Iran"
+                className="h-20 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </a>
+            <nav className="ml-auto flex gap-6">
               <Link
                 href="/search"
-                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+                className="text-white/80 hover:text-gold transition-colors"
               >
                 Search
               </Link>
               <Link
                 href="/submit"
-                className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors"
+                className="text-white/80 hover:text-gold transition-colors"
               >
                 Submit
               </Link>
@@ -133,40 +147,56 @@ export default async function RecordPage({
         {/* Back Link */}
         <Link
           href="/search"
-          className="inline-flex items-center text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white mb-8"
+          className="inline-flex items-center text-gray-600 hover:text-gold mb-8 transition-colors"
         >
           ← Back to Search
         </Link>
 
         {/* Name and Verification */}
-        <div className="mb-8">
-          <h1 className="text-5xl font-bold text-zinc-900 dark:text-white mb-4">
-            {record.firstName} {record.lastName}
-          </h1>
-          {verificationBadge()}
+        <div className="mb-8 flex gap-6 items-start">
+          {/* Profile Picture */}
+          {record.media && record.media.length > 0 && record.media[0].type === 'image' ? (
+            <img
+              src={record.media[0].publicUrl}
+              alt={`${record.firstName} ${record.lastName}`}
+              className="w-32 h-32 object-cover rounded-lg shadow-md flex-shrink-0"
+            />
+          ) : (
+            <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md">
+              <span className="text-gray-400 text-5xl">👤</span>
+            </div>
+          )}
+
+          {/* Name and Badge */}
+          <div className="flex-1">
+            <h1 className="text-5xl font-bold text-navy-dark mb-2">
+              {record.firstName} {record.lastName}
+            </h1>
+            {verificationBadge()}
+          </div>
         </div>
 
         {/* Main Information */}
-        <div className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-8 mb-8">
-          <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-8 mb-8 shadow-sm">
+          <h2 className="text-2xl font-semibold text-navy-dark mb-6">
             Information
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+              <p className="text-sm font-medium text-gray-500 mb-1">
                 Location of Incident
               </p>
-              <p className="text-lg text-zinc-900 dark:text-white">
+              <p className="text-lg text-gray-900">
                 {record.location}
               </p>
             </div>
 
             {record.birthYear && (
               <div>
-                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                <p className="text-sm font-medium text-gray-500 mb-1">
                   Birth Year
                 </p>
-                <p className="text-lg text-zinc-900 dark:text-white">
+                <p className="text-lg text-gray-900">
                   {record.birthYear}
                 </p>
               </div>
@@ -174,10 +204,10 @@ export default async function RecordPage({
 
             {record.nationalId && (
               <div>
-                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                <p className="text-sm font-medium text-gray-500 mb-1">
                   National ID
                 </p>
-                <p className="text-lg text-zinc-900 dark:text-white">
+                <p className="text-lg text-gray-900">
                   {record.nationalId}
                 </p>
               </div>
@@ -185,10 +215,10 @@ export default async function RecordPage({
 
             {record.fatherName && (
               <div>
-                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                <p className="text-sm font-medium text-gray-500 mb-1">
                   Father&apos;s Name
                 </p>
-                <p className="text-lg text-zinc-900 dark:text-white">
+                <p className="text-lg text-gray-900">
                   {record.fatherName}
                 </p>
               </div>
@@ -196,11 +226,62 @@ export default async function RecordPage({
 
             {record.motherName && (
               <div>
-                <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                <p className="text-sm font-medium text-gray-500 mb-1">
                   Mother&apos;s Name
                 </p>
-                <p className="text-lg text-zinc-900 dark:text-white">
+                <p className="text-lg text-gray-900">
                   {record.motherName}
+                </p>
+              </div>
+            )}
+
+            {record.hashtags && (
+              <div className="md:col-span-2">
+                <p className="text-sm font-medium text-gray-500 mb-1">
+                  Tags
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {record.hashtags.split(',').map((tag: string, index: number) => (
+                    <span
+                      key={index}
+                      className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
+                    >
+                      #{tag.trim()}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {record.twitterLinks && record.twitterLinks.length > 0 && (
+              <div className="md:col-span-2">
+                <p className="text-sm font-medium text-gray-500 mb-1">
+                  Twitter / X References ({record.twitterLinks.length})
+                </p>
+                <div className="space-y-1">
+                  {record.twitterLinks.map((link: any, index: number) => (
+                    <div key={link.id}>
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-lg text-blue-600 hover:underline break-all"
+                      >
+                        {link.url}
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {record.additionalInfo && (
+              <div className="md:col-span-2">
+                <p className="text-sm font-medium text-gray-500 mb-1">
+                  Additional Information
+                </p>
+                <p className="text-lg text-gray-900 whitespace-pre-wrap">
+                  {record.additionalInfo}
                 </p>
               </div>
             )}
@@ -209,8 +290,8 @@ export default async function RecordPage({
 
         {/* Media Gallery */}
         {record.media && record.media.length > 0 && (
-          <div className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-8 mb-8">
-            <h2 className="text-2xl font-semibold text-zinc-900 dark:text-white mb-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-8 mb-8 shadow-sm">
+            <h2 className="text-2xl font-semibold text-navy-dark mb-6">
               Media ({record.media.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -221,7 +302,7 @@ export default async function RecordPage({
                       href={media.publicUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block aspect-square bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden"
+                      className="block aspect-square bg-gray-100 rounded-lg overflow-hidden"
                     >
                       <img
                         src={media.publicUrl}
@@ -233,18 +314,18 @@ export default async function RecordPage({
                     <video
                       src={media.publicUrl}
                       controls
-                      className="w-full aspect-square bg-zinc-100 dark:bg-zinc-900 rounded-lg"
+                      className="w-full aspect-square bg-gray-100 rounded-lg"
                     />
                   ) : (
                     <a
                       href={media.publicUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center aspect-square bg-zinc-100 dark:bg-zinc-900 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors"
+                      className="flex items-center justify-center aspect-square bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                     >
                       <div className="text-center">
                         <div className="text-4xl mb-2">📄</div>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="text-sm text-gray-600">
                           {media.fileName}
                         </p>
                       </div>
@@ -257,21 +338,34 @@ export default async function RecordPage({
         )}
 
         {/* Add Evidence Button */}
-        <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 p-8 text-center">
-          <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+        <div className="bg-gray-50 rounded-lg border border-gray-200 p-8 text-center shadow-sm">
+          <h3 className="text-xl font-semibold text-navy-dark mb-2">
             Have additional information?
           </h3>
-          <p className="text-zinc-600 dark:text-zinc-400 mb-4">
+          <p className="text-gray-600 mb-4">
             Help verify this record by adding evidence, documents, or additional details.
           </p>
-          <button className="bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-3 rounded-lg font-semibold transition-colors">
+          <button className="bg-gold hover:bg-gold-light text-navy-dark px-6 py-3 rounded-lg font-semibold transition-colors">
             Add Evidence (Coming Soon)
           </button>
         </div>
 
         {/* Metadata */}
-        <div className="mt-8 text-center text-sm text-zinc-500 dark:text-zinc-500">
+        <div className="mt-8 text-center text-sm text-gray-500">
           <p>Submitted on {new Date(record.submittedAt).toLocaleDateString()}</p>
+          {record.submitterTwitterId && (
+            <p>
+              Submitted by:{' '}
+              <a
+                href={`https://twitter.com/${record.submitterTwitterId.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                {record.submitterTwitterId.startsWith('@') ? record.submitterTwitterId : `@${record.submitterTwitterId}`}
+              </a>
+            </p>
+          )}
           <p>Record ID: {record._id}</p>
         </div>
       </main>
