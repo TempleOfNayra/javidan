@@ -57,6 +57,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
 
   const [victimPicture, setVictimPicture] = useState<File | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
 
   // Close modal on ESC key
   useEffect(() => {
@@ -119,10 +120,58 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const uploadFileToR2 = async (file: File): Promise<{ r2Key: string; publicUrl: string; fileName: string; fileSize: number; type: string }> => {
+    // Get presigned URL
+    const urlResponse = await fetch('/api/get-presigned-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type,
+      }),
+    });
+
+    if (!urlResponse.ok) {
+      throw new Error(`Failed to get upload URL for ${file.name}`);
+    }
+
+    const { presignedUrl, publicUrl, r2Key } = await urlResponse.json();
+
+    // Upload file directly to R2
+    const uploadResponse = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Failed to upload ${file.name}`);
+    }
+
+    // Determine media type
+    let mediaType: 'image' | 'video' | 'document' = 'document';
+    if (file.type.startsWith('image/')) {
+      mediaType = 'image';
+    } else if (file.type.startsWith('video/')) {
+      mediaType = 'video';
+    }
+
+    return {
+      r2Key,
+      publicUrl,
+      fileName: file.name,
+      fileSize: file.size,
+      type: mediaType,
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
+    setUploadProgress({});
 
     try {
       const submitData = new FormData();
@@ -142,16 +191,26 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
         }
       });
 
-      // Add picture/profile picture
+      // Upload profile picture directly to R2 if present
       if (victimPicture) {
-        const pictureKey = submissionType === 'security-force' ? 'profilePicture' : 'victimPicture';
-        submitData.append(pictureKey, victimPicture);
+        setUploadProgress({ profilePicture: 0 });
+        const pictureMetadata = await uploadFileToR2(victimPicture);
+        setUploadProgress({ profilePicture: 100 });
+        submitData.append('uploadedProfilePicture', JSON.stringify(pictureMetadata));
       }
 
-      // Add supporting files
-      files.forEach((file) => {
-        submitData.append('files', file);
-      });
+      // Upload supporting files directly to R2
+      if (files.length > 0) {
+        const uploadedFiles = [];
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
+          const fileMetadata = await uploadFileToR2(file);
+          setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
+          uploadedFiles.push(fileMetadata);
+        }
+        submitData.append('uploadedFiles', JSON.stringify(uploadedFiles));
+      }
 
       const response = await fetch(apiEndpoint, {
         method: 'POST',
@@ -164,6 +223,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
       }
 
       setSuccess(true);
+      setUploadProgress({});
 
       // Reset form
       setFormData({

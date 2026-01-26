@@ -10,6 +10,7 @@ export default function AddMediaForm({ agentId }: AddMediaFormProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [submitterTwitterId, setSubmitterTwitterId] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,6 +43,53 @@ export default function AddMediaForm({ agentId }: AddMediaFormProps) {
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const uploadFileToR2 = async (file: File) => {
+    // Get presigned URL
+    const urlResponse = await fetch('/api/get-presigned-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type,
+      }),
+    });
+
+    if (!urlResponse.ok) {
+      throw new Error(`Failed to get upload URL for ${file.name}`);
+    }
+
+    const { presignedUrl, publicUrl, r2Key } = await urlResponse.json();
+
+    // Upload file directly to R2
+    const uploadResponse = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Failed to upload ${file.name}`);
+    }
+
+    // Determine media type
+    let mediaType: 'image' | 'video' | 'document' = 'document';
+    if (file.type.startsWith('image/')) {
+      mediaType = 'image';
+    } else if (file.type.startsWith('video/')) {
+      mediaType = 'video';
+    }
+
+    return {
+      r2Key,
+      publicUrl,
+      fileName: file.name,
+      fileSize: file.size,
+      type: mediaType,
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -52,13 +100,21 @@ export default function AddMediaForm({ agentId }: AddMediaFormProps) {
 
     setUploading(true);
     setMessage(null);
+    setUploadProgress({});
 
     try {
-      const formData = new FormData();
+      // Upload all files directly to R2
+      const uploadedFiles = [];
+      for (const file of files) {
+        setUploadProgress((prev) => ({ ...prev, [file.name]: 0 }));
+        const fileMetadata = await uploadFileToR2(file);
+        setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
+        uploadedFiles.push(fileMetadata);
+      }
 
-      files.forEach(file => {
-        formData.append('files', file);
-      });
+      // Send metadata to API
+      const formData = new FormData();
+      formData.append('uploadedFiles', JSON.stringify(uploadedFiles));
 
       if (submitterTwitterId) {
         formData.append('submitterTwitterId', submitterTwitterId);
@@ -75,13 +131,15 @@ export default function AddMediaForm({ agentId }: AddMediaFormProps) {
         setMessage({ type: 'success', text: `${data.filesUploaded} فایل با موفقیت آپلود شد. صفحه را رفرش کنید.` });
         setFiles([]);
         setSubmitterTwitterId('');
+        setUploadProgress({});
         if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
         setMessage({ type: 'error', text: data.error || 'خطا در آپلود فایل‌ها' });
       }
     } catch (error) {
       console.error('Upload error:', error);
-      setMessage({ type: 'error', text: 'خطا در آپلود فایل‌ها. لطفاً دوباره تلاش کنید.' });
+      const errorMessage = error instanceof Error ? error.message : 'خطا در آپلود فایل‌ها. لطفاً دوباره تلاش کنید.';
+      setMessage({ type: 'error', text: errorMessage });
     } finally {
       setUploading(false);
     }

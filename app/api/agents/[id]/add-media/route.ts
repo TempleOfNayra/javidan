@@ -24,58 +24,58 @@ export async function POST(
     }
 
     const formData = await request.formData();
-    const files = formData.getAll('files') as File[];
     const submitterTwitterId = formData.get('submitterTwitterId') as string | null;
 
-    if (files.length === 0) {
+    let uploadedFiles: Array<any> = [];
+
+    // Get pre-uploaded files metadata
+    const uploadedFilesStr = formData.get('uploadedFiles') as string | null;
+    if (uploadedFilesStr) {
+      uploadedFiles = JSON.parse(uploadedFilesStr);
+    } else {
+      // Fallback: Handle direct file uploads (for backward compatibility)
+      const files = formData.getAll('files') as File[];
+
+      for (const file of files) {
+        if (file.size > 0) {
+          let mediaType: 'image' | 'video' | 'document' = 'document';
+          if (file.type.startsWith('image/')) {
+            mediaType = 'image';
+          } else if (file.type.startsWith('video/')) {
+            mediaType = 'video';
+          }
+
+          const fileKey = generateFileKey(file.name, mediaType);
+          const publicUrl = await uploadToR2(file, fileKey, file.type);
+
+          uploadedFiles.push({
+            type: mediaType,
+            r2Key: fileKey,
+            publicUrl,
+            fileName: file.name,
+            fileSize: file.size,
+          });
+        }
+      }
+    }
+
+    if (uploadedFiles.length === 0) {
       return NextResponse.json(
         { error: 'At least one file is required' },
         { status: 400 }
       );
     }
 
-    const uploadedFiles: Array<MediaFile> = [];
-
-    for (const file of files) {
-      if (file.size > 0) {
-        // Determine file type
-        let mediaType: 'image' | 'video' | 'document' = 'document';
-        if (file.type.startsWith('image/')) {
-          mediaType = 'image';
-        } else if (file.type.startsWith('video/')) {
-          mediaType = 'video';
-        }
-
-        // Generate unique key and upload to R2
-        const fileKey = generateFileKey(file.name, mediaType);
-        const publicUrl = await uploadToR2(file, fileKey, file.type);
-
-        uploadedFiles.push({
-          type: mediaType,
-          r2Key: fileKey,
-          publicUrl,
-          fileName: file.name,
-          fileSize: file.size,
-          uploadedAt: new Date(),
-        });
-
-        // Insert media into database
-        await sql`
-          INSERT INTO media (
-            ir_agent_id, type, r2_key, public_url, file_name, file_size, is_primary
-          ) VALUES (
-            ${agentId}, ${mediaType}, ${fileKey}, ${publicUrl},
-            ${file.name}, ${file.size}, false
-          )
-        `;
-      }
-    }
-
-    if (uploadedFiles.length === 0) {
-      return NextResponse.json(
-        { error: 'No valid files were uploaded' },
-        { status: 400 }
-      );
+    // Insert all media into database
+    for (const fileData of uploadedFiles) {
+      await sql`
+        INSERT INTO media (
+          ir_agent_id, type, r2_key, public_url, file_name, file_size, is_primary
+        ) VALUES (
+          ${agentId}, ${fileData.type}, ${fileData.r2Key}, ${fileData.publicUrl},
+          ${fileData.fileName}, ${fileData.fileSize}, false
+        )
+      `;
     }
 
     // Update evidence count

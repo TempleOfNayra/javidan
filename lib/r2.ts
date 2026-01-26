@@ -61,4 +61,40 @@ export function generateFileKey(fileName: string, type: 'image' | 'video' | 'doc
   return `uploads/${type}/${timestamp}-${random}-${sanitizedName}`;
 }
 
+export async function generatePresignedUrl(
+  fileName: string,
+  fileType: string,
+  contentType: string
+): Promise<{ presignedUrl: string; publicUrl: string; r2Key: string }> {
+  if (!isR2Configured || !r2Client) {
+    throw new Error('R2 is not configured. Please add R2 credentials to environment variables.');
+  }
+
+  const bucketName = process.env.R2_BUCKET_NAME || 'javidan-media';
+
+  // Determine media type from content type
+  let mediaType: 'image' | 'video' | 'document' = 'document';
+  if (contentType.startsWith('image/')) {
+    mediaType = 'image';
+  } else if (contentType.startsWith('video/')) {
+    mediaType = 'video';
+  }
+
+  const r2Key = generateFileKey(fileName, mediaType);
+
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: r2Key,
+    ContentType: contentType,
+  });
+
+  // Generate presigned URL valid for 1 hour
+  const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+
+  // Generate public URL
+  const publicUrl = `${process.env.R2_PUBLIC_URL}/${r2Key}`;
+
+  return { presignedUrl, publicUrl, r2Key };
+}
+
 export { r2Client };

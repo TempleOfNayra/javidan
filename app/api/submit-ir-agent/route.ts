@@ -3,6 +3,18 @@ import { sql } from '@/lib/db';
 import { uploadToR2, generateFileKey } from '@/lib/r2';
 import { MediaFile } from '@/lib/types/record';
 
+// Configure route to allow larger file uploads (50MB)
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+  },
+};
+
+// Increase max duration for file processing
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -53,10 +65,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Handle profile picture (primary image)
-    const profilePictureFile = formData.get('profilePicture') as File | null;
+    // Handle uploaded media files
     const mediaFiles: Array<MediaFile & { isPrimary: boolean }> = [];
 
+    // Get pre-uploaded profile picture metadata
+    const uploadedProfilePicture = formData.get('uploadedProfilePicture') as string | null;
+    if (uploadedProfilePicture) {
+      const pictureData = JSON.parse(uploadedProfilePicture);
+      mediaFiles.push({
+        type: pictureData.type,
+        r2Key: pictureData.r2Key,
+        publicUrl: pictureData.publicUrl,
+        fileName: pictureData.fileName,
+        fileSize: pictureData.fileSize,
+        uploadedAt: new Date(),
+        isPrimary: true,
+      });
+    }
+
+    // Get pre-uploaded files metadata
+    const uploadedFilesStr = formData.get('uploadedFiles') as string | null;
+    if (uploadedFilesStr) {
+      const uploadedFiles = JSON.parse(uploadedFilesStr);
+      for (const fileData of uploadedFiles) {
+        mediaFiles.push({
+          type: fileData.type,
+          r2Key: fileData.r2Key,
+          publicUrl: fileData.publicUrl,
+          fileName: fileData.fileName,
+          fileSize: fileData.fileSize,
+          uploadedAt: new Date(),
+          isPrimary: false,
+        });
+      }
+    }
+
+    // Fallback: Handle direct file uploads (for backward compatibility)
+    const profilePictureFile = formData.get('profilePicture') as File | null;
     if (profilePictureFile && profilePictureFile.size > 0) {
       const fileKey = generateFileKey(profilePictureFile.name, 'image');
       const publicUrl = await uploadToR2(profilePictureFile, fileKey, profilePictureFile.type);
@@ -72,12 +117,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Handle supporting files
     const files = formData.getAll('files') as File[];
-
     for (const file of files) {
       if (file.size > 0) {
-        // Determine file type
         let mediaType: 'image' | 'video' | 'document' = 'document';
         if (file.type.startsWith('image/')) {
           mediaType = 'image';
@@ -85,7 +127,6 @@ export async function POST(request: NextRequest) {
           mediaType = 'video';
         }
 
-        // Generate unique key and upload to R2
         const fileKey = generateFileKey(file.name, mediaType);
         const publicUrl = await uploadToR2(file, fileKey, file.type);
 
@@ -148,8 +189,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error submitting IR agent record:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to submit record. Please try again.';
     return NextResponse.json(
-      { error: 'Failed to submit record. Please try again.' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
