@@ -137,7 +137,8 @@ export async function initDatabase() {
       ADD COLUMN IF NOT EXISTS gender VARCHAR(20),
       ADD COLUMN IF NOT EXISTS first_name_en VARCHAR(255),
       ADD COLUMN IF NOT EXISTS last_name_en VARCHAR(255),
-      ADD COLUMN IF NOT EXISTS perpetrator TEXT
+      ADD COLUMN IF NOT EXISTS perpetrator TEXT,
+      ADD COLUMN IF NOT EXISTS incident_date DATE
     `;
 
     // Remove old twitter_url column if it exists (migration)

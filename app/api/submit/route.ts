@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     const lastNameEn = formData.get('lastNameEn') as string | null;
     const location = formData.get('location') as string;
     const birthYear = formData.get('birthYear') ? parseInt(formData.get('birthYear') as string) : null;
+    const incidentDate = formData.get('incidentDate') as string | null;
     const nationalId = formData.get('nationalId') as string | null;
     const fatherName = formData.get('fatherName') as string | null;
     const motherName = formData.get('motherName') as string | null;
@@ -86,11 +87,11 @@ export async function POST(request: NextRequest) {
     // Insert record into database
     const result = await sql`
       INSERT INTO records (
-        first_name, last_name, first_name_en, last_name_en, location, birth_year, national_id,
+        first_name, last_name, first_name_en, last_name_en, location, birth_year, incident_date, national_id,
         father_name, mother_name, hashtags, additional_info, perpetrator, submitter_twitter_id,
         victim_status, gender, verified, verification_level, evidence_count
       ) VALUES (
-        ${firstName}, ${lastName}, ${firstNameEn}, ${lastNameEn}, ${location}, ${birthYear}, ${nationalId},
+        ${firstName}, ${lastName}, ${firstNameEn}, ${lastNameEn}, ${location}, ${birthYear}, ${incidentDate}, ${nationalId},
         ${fatherName}, ${motherName}, ${hashtags}, ${additionalInfo}, ${perpetrator}, ${submitterTwitterId},
         ${victimStatus}, ${gender}, false, 'unverified', ${mediaFiles.length}
       )

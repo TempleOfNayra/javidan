@@ -164,6 +164,7 @@
     "additionalInfoTitle": "Additional Information (Optional)",
     "birthYear": "Birth Year",
     "birthYearPlaceholder": "e.g., 1995",
+    "incidentDate": "Date of Incident",
     "nationalId": "National ID",
     "fatherName": "Father's Name",
     "motherName": "Mother's Name",

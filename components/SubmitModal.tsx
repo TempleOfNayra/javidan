@@ -27,6 +27,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
     location: '',
     city: '',
     birthYear: '',
+    incidentDate: '',
     nationalId: '',
     fatherName: '',
     motherName: '',
@@ -173,6 +174,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
         location: '',
         city: '',
         birthYear: '',
+        incidentDate: '',
         nationalId: '',
         fatherName: '',
         motherName: '',
@@ -604,6 +606,21 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
                         placeholder={t('form.birthYearPlaceholder')}
                         min="1900"
                         max={new Date().getFullYear()}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="incidentDate" className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('form.incidentDate')}
+                      </label>
+                      <input
+                        type="date"
+                        id="incidentDate"
+                        name="incidentDate"
+                        value={formData.incidentDate}
+                        onChange={handleInputChange}
+                        max={new Date().toISOString().split('T')[0]}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
                       />
                     </div>

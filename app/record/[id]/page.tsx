@@ -40,6 +40,7 @@ async function getRecord(id: string) {
       lastNameEn: record.last_name_en,
       location: record.location,
       birthYear: record.birth_year,
+      incidentDate: record.incident_date ? new Date(record.incident_date).toISOString().split('T')[0] : null,
       nationalId: record.national_id,
       fatherName: record.father_name,
       motherName: record.mother_name,
@@ -237,6 +238,18 @@ export default async function RecordPage({
                 </p>
                 <p className="text-lg text-gray-900">
                   {record.birthYear}
+                </p>
+              </div>
+            )}
+
+            {/* Incident Date */}
+            {record.incidentDate && (
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">
+                  تاریخ حادثه
+                </p>
+                <p className="text-lg text-gray-900">
+                  {new Date(record.incidentDate).toLocaleDateString('fa-IR')}
                 </p>
               </div>
             )}
