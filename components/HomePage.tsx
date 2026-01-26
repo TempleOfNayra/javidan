@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import SubmitModal from './SubmitModal';
+import { useLanguage } from '@/lib/LanguageContext';
 
 interface RecentRecord {
   id: string;
@@ -17,6 +18,7 @@ interface RecentRecord {
 
 export default function HomePage({ recentRecords }: { recentRecords: RecentRecord[] }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { t } = useLanguage();
 
   return (
     <>
@@ -24,23 +26,23 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold text-navy-dark mb-6">
-            In Memory of Those We Lost
+            {t('home.title')}
           </h2>
           <p className="text-xl text-gray-700 max-w-3xl mx-auto mb-8">
-            A public memorial and archive documenting the lives lost during Iran's revolution. Community-driven, open-source, and dedicated to preserving the truth.
+            {t('home.description')}
           </p>
           <div className="flex gap-4 justify-center">
             <button
               onClick={() => setIsModalOpen(true)}
               className="bg-gold hover:bg-gold-light text-navy-dark px-8 py-3 rounded-lg font-semibold transition-colors"
             >
-              Submit a Record
+              {t('home.submitButton')}
             </button>
             <Link
               href="/search"
               className="border-2 border-gold hover:bg-gold/10 px-8 py-3 rounded-lg font-semibold transition-colors text-navy-dark"
             >
-              Search Archive
+              {t('home.searchButton')}
             </Link>
           </div>
         </div>
@@ -50,13 +52,13 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
           <div className="mb-16">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-navy-dark">
-                Recent Submissions
+                {t('home.recentSubmissions')}
               </h3>
               <Link
                 href="/search"
                 className="text-gold hover:text-gold-light font-semibold transition-colors"
               >
-                View All →
+                {t('home.viewAll')} →
               </Link>
             </div>
 
@@ -101,7 +103,7 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
                       )}
 
                       <p className="text-xs text-gray-500">
-                        Submitted by:{' '}
+                        {t('home.submittedBy')}:{' '}
                         {record.submitterTwitterId ? (
                           <span className="text-blue-600">
                             {record.submitterTwitterId.startsWith('@')
@@ -109,9 +111,9 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
                               : `@${record.submitterTwitterId}`}
                           </span>
                         ) : (
-                          <span className="text-gray-400">Anonymous</span>
+                          <span className="text-gray-400">{t('home.anonymous')}</span>
                         )}
-                        {' '}at {new Date(record.submittedAt).toLocaleDateString()}
+                        {' '}{t('home.at')} {new Date(record.submittedAt).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -124,10 +126,10 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
         {/* Mission Statement */}
         <div className="mt-16 text-center max-w-3xl mx-auto">
           <h3 className="text-2xl font-bold text-navy-dark mb-4">
-            Why Javidan?
+            {t('home.whyJavidan')}
           </h3>
           <p className="text-gray-700 leading-relaxed">
-            Javidan (جاویدان - eternal) is an open-source, crowd-sourced memorial dedicated to documenting and honoring those who lost their lives during Iran's ongoing revolution. We believe in transparency, community verification, and preserving the truth for future generations.
+            {t('home.whyJavidanText')}
           </p>
         </div>
       </main>

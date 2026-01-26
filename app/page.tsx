@@ -1,5 +1,7 @@
 import { sql } from '@/lib/db';
 import HomePage from '@/components/HomePage';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 async function getRecentRecords() {
   try {
@@ -37,48 +39,13 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-navy-dark border-b border-navy">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            {/* Version */}
-            <div className="text-white/60 text-sm">
-              v1.0.1
-            </div>
-            {/* Logo - Center */}
-            <a href="/" className="absolute left-1/2 transform -translate-x-1/2">
-              <img
-                src="/lion-sun.svg"
-                alt="Lion and Sun - Emblem of Iran"
-                className="h-20 w-auto cursor-pointer hover:opacity-80 transition-opacity"
-              />
-            </a>
-            <nav className="ml-auto flex gap-6">
-              <a
-                href="/search"
-                className="text-white/80 hover:text-gold transition-colors"
-              >
-                Search
-              </a>
-              <a
-                href="/submit"
-                className="text-white/80 hover:text-gold transition-colors"
-              >
-                Submit
-              </a>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Client Component with Modal */}
       <HomePage recentRecords={recentRecords} />
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 mt-24 bg-navy-dark">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center text-white/60">
-          <p>Open-source and community-driven. In memory of those we lost.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
