@@ -192,6 +192,12 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
         twitterUrl3: '',
         submitterTwitterId: '',
         victimStatus: '',
+        perpetrator: '',
+        agentType: '',
+        country: '',
+        affiliation: '',
+        role: '',
+        title: '',
       });
       setVictimPicture(null);
       setFiles([]);

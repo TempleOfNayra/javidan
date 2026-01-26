@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/LanguageContext';
 import Header from '@/components/Header';
 
-interface Record {
+interface SearchRecord {
   id: number;
   first_name: string;
   last_name: string;
@@ -37,7 +37,7 @@ const victimStatusLabels: Record<string, { en: string; fa: string }> = {
 export default function SearchPage() {
   const { t, language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
-  const [records, setRecords] = useState<Record[]>([]);
+  const [records, setRecords] = useState<SearchRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
 
