@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/lib/LanguageContext';
 
 type SubmissionType = 'victim' | 'security-force' | 'incident' | 'evidence';
 
 export default function SubmitPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -16,23 +18,27 @@ export default function SubmitPage() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    firstNameEn: '',
+    lastNameEn: '',
     location: '',
     birthYear: '',
     nationalId: '',
     fatherName: '',
     motherName: '',
+    gender: '' as '' | 'male' | 'female',
     hashtags: '',
     additionalInfo: '',
     twitterUrl1: '',
     twitterUrl2: '',
     twitterUrl3: '',
     submitterTwitterId: '',
-    victimStatus: 'killed' as 'killed' | 'incarcerated' | 'disappeared' | 'injured',
+    victimStatus: '' as '' | 'executed' | 'killed' | 'incarcerated' | 'disappeared' | 'injured',
   });
 
+  const [victimPicture, setVictimPicture] = useState<File | null>(null);
   const [files, setFiles] = useState<File[]>([]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
 
     // Special handling for submitterTwitterId to ensure @ prefix
@@ -49,6 +55,16 @@ export default function SubmitPage() {
         [name]: value,
       });
     }
+  };
+
+  const handleVictimPictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setVictimPicture(e.target.files[0]);
+    }
+  };
+
+  const removeVictimPicture = () => {
+    setVictimPicture(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -77,7 +93,12 @@ export default function SubmitPage() {
         }
       });
 
-      // Add files
+      // Add victim picture as primary
+      if (victimPicture) {
+        submitData.append('victimPicture', victimPicture);
+      }
+
+      // Add supporting files
       files.forEach((file) => {
         submitData.append('files', file);
       });
@@ -98,19 +119,23 @@ export default function SubmitPage() {
       setFormData({
         firstName: '',
         lastName: '',
+        firstNameEn: '',
+        lastNameEn: '',
         location: '',
         birthYear: '',
         nationalId: '',
         fatherName: '',
         motherName: '',
+        gender: '',
         hashtags: '',
         additionalInfo: '',
         twitterUrl1: '',
         twitterUrl2: '',
         twitterUrl3: '',
         submitterTwitterId: '',
-        victimStatus: 'killed',
+        victimStatus: '',
       });
+      setVictimPicture(null);
       setFiles([]);
 
       // Redirect to search page after 2 seconds
@@ -177,10 +202,10 @@ export default function SubmitPage() {
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-navy-dark mb-4">
-            Submit a Record
+            {t('form.pageTitle')}
           </h1>
           <p className="text-lg text-gray-700">
-            Help preserve their memory. All submissions start as unverified and can be confirmed by the community.
+            {t('form.pageDescription')}
           </p>
         </div>
 
@@ -194,9 +219,9 @@ export default function SubmitPage() {
           {/* Submission Type Selector */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-navy-dark mb-4">
-              What are you submitting?
+              {t('submissionType.title')}
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4" dir="ltr">
               <button
                 type="button"
                 onClick={() => setSubmissionType('victim')}
@@ -207,8 +232,8 @@ export default function SubmitPage() {
                 }`}
               >
                 <div className="text-3xl mb-2">🕯️</div>
-                <div className="font-semibold text-navy-dark">Victim</div>
-                <div className="text-xs text-gray-600 mt-1">Person who lost their life</div>
+                <div className="font-semibold text-navy-dark">{t('submissionType.victim')}</div>
+                <div className="text-xs text-gray-600 mt-1">{t('submissionType.victimDesc')}</div>
               </button>
 
               <button
@@ -221,8 +246,8 @@ export default function SubmitPage() {
                 }`}
               >
                 <div className="text-3xl mb-2">⚠️</div>
-                <div className="font-semibold text-navy-dark">Security Force</div>
-                <div className="text-xs text-gray-600 mt-1">Document perpetrators</div>
+                <div className="font-semibold text-navy-dark">{t('submissionType.securityForce')}</div>
+                <div className="text-xs text-gray-600 mt-1">{t('submissionType.securityForceDesc')}</div>
               </button>
 
               <button
@@ -235,8 +260,8 @@ export default function SubmitPage() {
                 }`}
               >
                 <div className="text-3xl mb-2">📍</div>
-                <div className="font-semibold text-navy-dark">Incident</div>
-                <div className="text-xs text-gray-600 mt-1">Specific event or location</div>
+                <div className="font-semibold text-navy-dark">{t('submissionType.incident')}</div>
+                <div className="text-xs text-gray-600 mt-1">{t('submissionType.incidentDesc')}</div>
               </button>
 
               <button
@@ -249,8 +274,8 @@ export default function SubmitPage() {
                 }`}
               >
                 <div className="text-3xl mb-2">📄</div>
-                <div className="font-semibold text-navy-dark">Evidence</div>
-                <div className="text-xs text-gray-600 mt-1">General documentation</div>
+                <div className="font-semibold text-navy-dark">{t('submissionType.evidence')}</div>
+                <div className="text-xs text-gray-600 mt-1">{t('submissionType.evidenceDesc')}</div>
               </button>
             </div>
           </div>
@@ -258,14 +283,14 @@ export default function SubmitPage() {
           {/* Submitter Info (Optional) */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-navy-dark mb-4">
-              Your Information (Optional)
+              {t('form.submitterInfo')}
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              If you'd like to identify yourself as the submitter, you can optionally provide your Twitter/X handle.
+              {t('form.submitterInfoDesc')}
             </p>
             <div>
               <label htmlFor="submitterTwitterId" className="block text-sm font-medium text-gray-700 mb-2">
-                Your Twitter/X Handle (Optional)
+                {t('form.twitterHandle')}
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">@</span>
@@ -275,12 +300,13 @@ export default function SubmitPage() {
                   name="submitterTwitterId"
                   value={formData.submitterTwitterId}
                   onChange={handleInputChange}
-                  placeholder="yourusername"
+                  placeholder={t('form.twitterPlaceholder')}
+                  dir="ltr"
                   className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                This will be publicly displayed with your submission
+                {t('form.twitterNote')}
               </p>
             </div>
           </div>
@@ -289,9 +315,22 @@ export default function SubmitPage() {
           {submissionType === 'victim' && (
             <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
               <h2 className="text-xl font-semibold text-navy-dark mb-4">
-                Victim Status *
+                {t('victimStatus.title')} *
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4" dir="ltr">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, victimStatus: 'executed' })}
+                className={`p-4 border-2 rounded-lg transition-all ${
+                  formData.victimStatus === 'executed'
+                    ? 'border-gold bg-gold/10 shadow-md'
+                    : 'border-gray-200 hover:border-gold/50'
+                }`}
+              >
+                <div className="text-3xl mb-2">⚖️</div>
+                <div className="font-semibold text-navy-dark">{t('victimStatus.executed')}</div>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, victimStatus: 'killed' })}
@@ -302,7 +341,7 @@ export default function SubmitPage() {
                 }`}
               >
                 <div className="text-3xl mb-2">💔</div>
-                <div className="font-semibold text-navy-dark">Killed</div>
+                <div className="font-semibold text-navy-dark">{t('victimStatus.killed')}</div>
               </button>
 
               <button
@@ -315,7 +354,7 @@ export default function SubmitPage() {
                 }`}
               >
                 <div className="text-3xl mb-2">⛓️</div>
-                <div className="font-semibold text-navy-dark">Incarcerated</div>
+                <div className="font-semibold text-navy-dark">{t('victimStatus.incarcerated')}</div>
               </button>
 
               <button
@@ -328,7 +367,7 @@ export default function SubmitPage() {
                 }`}
               >
                 <div className="text-3xl mb-2">❓</div>
-                <div className="font-semibold text-navy-dark">Disappeared</div>
+                <div className="font-semibold text-navy-dark">{t('victimStatus.disappeared')}</div>
               </button>
 
               <button
@@ -341,51 +380,107 @@ export default function SubmitPage() {
                 }`}
               >
                 <div className="text-3xl mb-2">🩹</div>
-                <div className="font-semibold text-navy-dark">Injured</div>
+                <div className="font-semibold text-navy-dark">{t('victimStatus.injured')}</div>
               </button>
             </div>
           </div>
           )}
 
+
           {/* Required Fields */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-navy-dark mb-4">
-              Required Information
+              {t('form.requiredInfo')}
             </h2>
             <div className="space-y-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name *
-                </label>
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  required
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
-                />
+              {/* First and Last Name - on one line */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('form.firstName')} *
+                  </label>
+                  <input
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    required
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('form.lastName')} *
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    required
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
+                  />
+                </div>
               </div>
 
+              {/* English Names - on one line */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="firstNameEn" className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('form.firstNameEn')}
+                  </label>
+                  <input
+                    type="text"
+                    id="firstNameEn"
+                    name="firstNameEn"
+                    value={formData.firstNameEn}
+                    onChange={handleInputChange}
+                    dir="ltr"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="lastNameEn" className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('form.lastNameEn')}
+                  </label>
+                  <input
+                    type="text"
+                    id="lastNameEn"
+                    name="lastNameEn"
+                    value={formData.lastNameEn}
+                    onChange={handleInputChange}
+                    dir="ltr"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Gender dropdown */}
               <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name *
+                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('form.gender')} *
                 </label>
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  required
-                  value={formData.lastName}
+                <select
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
                   onChange={handleInputChange}
+                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
-                />
+                >
+                  <option value="">{t('form.gender')}</option>
+                  <option value="male">{t('form.male')}</option>
+                  <option value="female">{t('form.female')}</option>
+                </select>
               </div>
 
               <div>
                 <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-                  Location of Incident (City/Province) *
+                  {t('form.locationLabel')} *
                 </label>
                 <input
                   type="text"
@@ -394,7 +489,7 @@ export default function SubmitPage() {
                   required
                   value={formData.location}
                   onChange={handleInputChange}
-                  placeholder="e.g., Tehran, Isfahan, Shiraz"
+                  placeholder={t('form.locationPlaceholder')}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
                 />
               </div>
@@ -404,12 +499,12 @@ export default function SubmitPage() {
           {/* Optional Fields */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-navy-dark mb-4">
-              Additional Information (Optional)
+              {t('form.additionalInfoTitle')}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="birthYear" className="block text-sm font-medium text-gray-700 mb-2">
-                  Birth Year
+                  {t('form.birthYear')}
                 </label>
                 <input
                   type="number"
@@ -417,7 +512,7 @@ export default function SubmitPage() {
                   name="birthYear"
                   value={formData.birthYear}
                   onChange={handleInputChange}
-                  placeholder="e.g., 1995"
+                  placeholder={t('form.birthYearPlaceholder')}
                   min="1900"
                   max={new Date().getFullYear()}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
@@ -426,7 +521,7 @@ export default function SubmitPage() {
 
               <div>
                 <label htmlFor="nationalId" className="block text-sm font-medium text-gray-700 mb-2">
-                  National ID
+                  {t('form.nationalId')}
                 </label>
                 <input
                   type="text"
@@ -440,7 +535,7 @@ export default function SubmitPage() {
 
               <div>
                 <label htmlFor="fatherName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Father&apos;s Name
+                  {t('form.fatherName')}
                 </label>
                 <input
                   type="text"
@@ -454,7 +549,7 @@ export default function SubmitPage() {
 
               <div>
                 <label htmlFor="motherName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Mother&apos;s Name
+                  {t('form.motherName')}
                 </label>
                 <input
                   type="text"
@@ -471,7 +566,7 @@ export default function SubmitPage() {
             <div className="space-y-4 mt-4 pt-4 border-t border-gray-200">
               <div>
                 <label htmlFor="hashtags" className="block text-sm font-medium text-gray-700 mb-2">
-                  Tags / Hashtags
+                  {t('form.hashtags')}
                 </label>
                 <input
                   type="text"
@@ -479,21 +574,21 @@ export default function SubmitPage() {
                   name="hashtags"
                   value={formData.hashtags}
                   onChange={handleInputChange}
-                  placeholder="e.g., zan, zendegi, azadi (comma-separated)"
+                  placeholder={t('form.hashtagsPlaceholder')}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
                 />
               </div>
 
               <div>
                 <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-2">
-                  Additional Information
+                  {t('form.additionalInfo')}
                 </label>
                 <textarea
                   id="additionalInfo"
                   name="additionalInfo"
                   value={formData.additionalInfo}
                   onChange={handleInputChange}
-                  placeholder="Any additional details, evidence description, information about security forces involved, etc."
+                  placeholder={t('form.additionalInfoPlaceholder')}
                   rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent resize-y"
                 />
@@ -501,7 +596,7 @@ export default function SubmitPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Twitter / X URLs (up to 3)
+                  {t('form.externalLinks')}
                 </label>
                 <div className="space-y-2">
                   <input
@@ -510,7 +605,8 @@ export default function SubmitPage() {
                     name="twitterUrl1"
                     value={formData.twitterUrl1}
                     onChange={handleInputChange}
-                    placeholder="https://twitter.com/... (Link 1)"
+                    placeholder={t('form.externalUrlPlaceholder1')}
+                    dir="ltr"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
                   />
                   <input
@@ -519,7 +615,8 @@ export default function SubmitPage() {
                     name="twitterUrl2"
                     value={formData.twitterUrl2}
                     onChange={handleInputChange}
-                    placeholder="https://twitter.com/... (Link 2)"
+                    placeholder={t('form.externalUrlPlaceholder2')}
+                    dir="ltr"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
                   />
                   <input
@@ -528,7 +625,8 @@ export default function SubmitPage() {
                     name="twitterUrl3"
                     value={formData.twitterUrl3}
                     onChange={handleInputChange}
-                    placeholder="https://twitter.com/... (Link 3)"
+                    placeholder={t('form.externalUrlPlaceholder3')}
+                    dir="ltr"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
                   />
                 </div>
@@ -536,13 +634,58 @@ export default function SubmitPage() {
             </div>
           </div>
 
-          {/* Media Upload */}
+          {/* Victim Picture Upload */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-navy-dark mb-4">
-              Media & Documents (Optional)
+              {t('form.victimPicture')}
             </h2>
             <p className="text-sm text-gray-600 mb-4">
-              Upload photos, videos, or supporting documents. Accepted formats: JPG, PNG, MP4, PDF
+              {t('form.victimPictureDesc')}
+            </p>
+
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <input
+                type="file"
+                id="victimPictureUpload"
+                accept="image/*"
+                onChange={handleVictimPictureChange}
+                className="hidden"
+              />
+              <label
+                htmlFor="victimPictureUpload"
+                className="cursor-pointer text-gray-600 hover:text-navy-dark"
+              >
+                <div className="text-4xl mb-2">🖼️</div>
+                <div className="font-medium">{t('form.victimPictureButton')}</div>
+                <div className="text-sm">{t('form.victimPictureDragDrop')}</div>
+              </label>
+            </div>
+
+            {victimPicture && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                  <span className="text-sm text-gray-700 truncate flex-1">
+                    {victimPicture.name} ({(victimPicture.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removeVictimPicture}
+                    className="text-red-600 hover:text-red-700 ml-4"
+                  >
+                    {t('form.removeFile')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Supporting Documents Upload */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-navy-dark mb-4">
+              {t('form.media')}
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              {t('form.mediaDesc')}
             </p>
 
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
@@ -559,8 +702,8 @@ export default function SubmitPage() {
                 className="cursor-pointer text-gray-600 hover:text-navy-dark"
               >
                 <div className="text-4xl mb-2">📎</div>
-                <div className="font-medium">Click to upload files</div>
-                <div className="text-sm">or drag and drop</div>
+                <div className="font-medium">{t('form.mediaButton')}</div>
+                <div className="text-sm">{t('form.mediaDragDrop')}</div>
               </label>
             </div>
 
@@ -579,7 +722,7 @@ export default function SubmitPage() {
                       onClick={() => removeFile(index)}
                       className="text-red-600 hover:text-red-700 ml-4"
                     >
-                      Remove
+                      {t('form.removeFile')}
                     </button>
                   </div>
                 ))}
@@ -594,7 +737,7 @@ export default function SubmitPage() {
               disabled={isSubmitting}
               className="flex-1 bg-gold hover:bg-gold-light text-navy-dark px-8 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Record'}
+              {isSubmitting ? t('form.submitting') : t('form.submitButton')}
             </button>
             <Link
               href="/"

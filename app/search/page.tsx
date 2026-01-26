@@ -1,341 +1,224 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { sql } from '@/lib/db';
+import { useLanguage } from '@/lib/LanguageContext';
+import Header from '@/components/Header';
 
-async function getRecords(searchParams: { [key: string]: string | undefined }) {
-  try {
-    // Build query based on search params
-    let result;
-
-    if (!searchParams.name && !searchParams.location && !searchParams.year) {
-      // No filters - get all records
-      result = await sql`
-        SELECT
-          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
-          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
-          r.submitted_at, r.updated_at,
-          COUNT(m.id) as media_count
-        FROM records r
-        LEFT JOIN media m ON r.id = m.record_id
-        GROUP BY r.id
-        ORDER BY r.submitted_at DESC
-        LIMIT 100
-      `;
-    } else if (searchParams.name && !searchParams.location && !searchParams.year) {
-      // Search by name only
-      const namePattern = `%${searchParams.name}%`;
-      result = await sql`
-        SELECT
-          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
-          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
-          r.submitted_at, r.updated_at,
-          COUNT(m.id) as media_count
-        FROM records r
-        LEFT JOIN media m ON r.id = m.record_id
-        WHERE LOWER(r.first_name) LIKE LOWER(${namePattern}) OR LOWER(r.last_name) LIKE LOWER(${namePattern})
-        GROUP BY r.id
-        ORDER BY r.submitted_at DESC
-        LIMIT 100
-      `;
-    } else if (searchParams.location && !searchParams.name && !searchParams.year) {
-      // Search by location only
-      const locationPattern = `%${searchParams.location}%`;
-      result = await sql`
-        SELECT
-          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
-          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
-          r.submitted_at, r.updated_at,
-          COUNT(m.id) as media_count
-        FROM records r
-        LEFT JOIN media m ON r.id = m.record_id
-        WHERE LOWER(r.location) LIKE LOWER(${locationPattern})
-        GROUP BY r.id
-        ORDER BY r.submitted_at DESC
-        LIMIT 100
-      `;
-    } else if (searchParams.year && !searchParams.name && !searchParams.location) {
-      // Search by year only
-      const year = parseInt(searchParams.year);
-      result = await sql`
-        SELECT
-          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
-          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
-          r.submitted_at, r.updated_at,
-          COUNT(m.id) as media_count
-        FROM records r
-        LEFT JOIN media m ON r.id = m.record_id
-        WHERE r.birth_year = ${year}
-        GROUP BY r.id
-        ORDER BY r.submitted_at DESC
-        LIMIT 100
-      `;
-    } else if (searchParams.name && searchParams.location && !searchParams.year) {
-      // Search by name and location
-      const namePattern = `%${searchParams.name}%`;
-      const locationPattern = `%${searchParams.location}%`;
-      result = await sql`
-        SELECT
-          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
-          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
-          r.submitted_at, r.updated_at,
-          COUNT(m.id) as media_count
-        FROM records r
-        LEFT JOIN media m ON r.id = m.record_id
-        WHERE (LOWER(r.first_name) LIKE LOWER(${namePattern}) OR LOWER(r.last_name) LIKE LOWER(${namePattern}))
-          AND LOWER(r.location) LIKE LOWER(${locationPattern})
-        GROUP BY r.id
-        ORDER BY r.submitted_at DESC
-        LIMIT 100
-      `;
-    } else if (searchParams.name && searchParams.year && !searchParams.location) {
-      // Search by name and year
-      const namePattern = `%${searchParams.name}%`;
-      const year = parseInt(searchParams.year || '0');
-      result = await sql`
-        SELECT
-          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
-          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
-          r.submitted_at, r.updated_at,
-          COUNT(m.id) as media_count
-        FROM records r
-        LEFT JOIN media m ON r.id = m.record_id
-        WHERE (LOWER(r.first_name) LIKE LOWER(${namePattern}) OR LOWER(r.last_name) LIKE LOWER(${namePattern}))
-          AND r.birth_year = ${year}
-        GROUP BY r.id
-        ORDER BY r.submitted_at DESC
-        LIMIT 100
-      `;
-    } else if (searchParams.location && searchParams.year && !searchParams.name) {
-      // Search by location and year
-      const locationPattern = `%${searchParams.location}%`;
-      const year = parseInt(searchParams.year || '0');
-      result = await sql`
-        SELECT
-          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
-          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
-          r.submitted_at, r.updated_at,
-          COUNT(m.id) as media_count
-        FROM records r
-        LEFT JOIN media m ON r.id = m.record_id
-        WHERE LOWER(r.location) LIKE LOWER(${locationPattern})
-          AND r.birth_year = ${year}
-        GROUP BY r.id
-        ORDER BY r.submitted_at DESC
-        LIMIT 100
-      `;
-    } else {
-      // All three filters
-      const namePattern = `%${searchParams.name}%`;
-      const locationPattern = `%${searchParams.location}%`;
-      const year = parseInt(searchParams.year || '0');
-      result = await sql`
-        SELECT
-          r.id, r.first_name, r.last_name, r.location, r.birth_year, r.national_id,
-          r.father_name, r.mother_name, r.verified, r.verification_level, r.evidence_count,
-          r.submitted_at, r.updated_at,
-          COUNT(m.id) as media_count
-        FROM records r
-        LEFT JOIN media m ON r.id = m.record_id
-        WHERE (LOWER(r.first_name) LIKE LOWER(${namePattern}) OR LOWER(r.last_name) LIKE LOWER(${namePattern}))
-          AND LOWER(r.location) LIKE LOWER(${locationPattern})
-          AND r.birth_year = ${year}
-        GROUP BY r.id
-        ORDER BY r.submitted_at DESC
-        LIMIT 100
-      `;
-    }
-
-    return result.rows.map((record: any) => ({
-      _id: record.id.toString(),
-      firstName: record.first_name,
-      lastName: record.last_name,
-      location: record.location,
-      birthYear: record.birth_year,
-      nationalId: record.national_id,
-      fatherName: record.father_name,
-      motherName: record.mother_name,
-      verified: record.verified,
-      verificationLevel: record.verification_level || 'unverified',
-      evidenceCount: parseInt(record.evidence_count) || 0,
-      submittedAt: record.submitted_at.toISOString(),
-      updatedAt: record.updated_at.toISOString(),
-      media: [],
-      mediaCount: parseInt(record.media_count) || 0
-    }));
-  } catch (error) {
-    console.error('Error fetching records:', error);
-    return [];
-  }
+interface Record {
+  id: number;
+  first_name: string;
+  last_name: string;
+  first_name_en?: string;
+  last_name_en?: string;
+  location: string;
+  birth_year?: number;
+  national_id?: string;
+  father_name?: string;
+  mother_name?: string;
+  verified: boolean;
+  verification_level: string;
+  evidence_count: number;
+  victim_status?: string;
+  submitted_at: string;
+  updated_at: string;
+  victim_picture_url?: string;
 }
 
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | undefined }>;
-}) {
-  const params = await searchParams;
-  const records = await getRecords(params);
+const victimStatusLabels: Record<string, { en: string; fa: string }> = {
+  executed: { en: 'Executed', fa: 'اعدام شده' },
+  killed: { en: 'Killed', fa: 'کشته شده' },
+  incarcerated: { en: 'Incarcerated', fa: 'زندانی' },
+  disappeared: { en: 'Disappeared', fa: 'ناپدید شده' },
+  injured: { en: 'Injured', fa: 'مجروح' },
+  other: { en: 'Other', fa: 'سایر' },
+};
+
+export default function SearchPage() {
+  const { t, language } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [records, setRecords] = useState<Record[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      performSearch(searchQuery);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Initial load
+  useEffect(() => {
+    performSearch('');
+  }, []);
+
+  const performSearch = async (query: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setRecords(data.records);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setLoading(false);
+      setInitialLoad(false);
+    }
+  };
+
+  const getVerificationBadge = (level: string) => {
+    switch (level) {
+      case 'trusted':
+        return (
+          <span className="text-xs text-green-600 flex items-center gap-1">
+            <span>✓✓✓</span>
+            {language === 'fa' ? 'تأیید شده' : 'Verified'}
+          </span>
+        );
+      case 'document':
+        return (
+          <span className="text-xs text-green-600 flex items-center gap-1">
+            <span>✓✓</span>
+            {language === 'fa' ? 'تأیید شده' : 'Verified'}
+          </span>
+        );
+      case 'community':
+        return (
+          <span className="text-xs text-blue-600 flex items-center gap-1">
+            <span>✓</span>
+            {language === 'fa' ? 'تأیید شده' : 'Verified'}
+          </span>
+        );
+      default:
+        return (
+          <span className="text-xs text-yellow-600 flex items-center gap-1">
+            <span>⚠</span>
+            {language === 'fa' ? 'تأیید نشده' : 'Unverified'}
+          </span>
+        );
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-navy-dark border-b border-navy">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            {/* Version */}
-            <div className="text-white/60 text-sm">
-              v1.0.1
-            </div>
-            {/* Logo - Center */}
-            <a href="/" className="absolute left-1/2 transform -translate-x-1/2">
-              <img
-                src="/lion-sun.svg"
-                alt="Lion and Sun - Emblem of Iran"
-                className="h-20 w-auto cursor-pointer hover:opacity-80 transition-opacity"
-              />
-            </a>
-            <nav className="ml-auto flex gap-6">
-              <Link
-                href="/search"
-                className="text-white/80 hover:text-gold transition-colors font-semibold"
-              >
-                Search
-              </Link>
-              <Link
-                href="/submit"
-                className="text-white/80 hover:text-gold transition-colors"
-              >
-                Submit
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Search Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-navy-dark mb-4">
-            Search Archive
+            {t('search.title')}
           </h1>
-          <p className="text-lg text-gray-700">
-            {records.length} records found
-          </p>
-        </div>
 
-        {/* Search Filters */}
-        <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8 shadow-sm">
-          <form method="GET" className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                defaultValue={params.name}
-                placeholder="First or last name"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
-              />
-            </div>
+          {/* Single Search Field */}
+          <div className="max-w-2xl">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('search.searchPlaceholder')}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent text-lg"
+              dir={language === 'fa' ? 'rtl' : 'ltr'}
+            />
+          </div>
 
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-                Location
-              </label>
-              <input
-                type="text"
-                id="location"
-                name="location"
-                defaultValue={params.location}
-                placeholder="City or province"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-2">
-                Birth Year
-              </label>
-              <input
-                type="number"
-                id="year"
-                name="year"
-                defaultValue={params.year}
-                placeholder="e.g., 1995"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
-              />
-            </div>
-
-            <div className="md:col-span-3 flex gap-4">
-              <button
-                type="submit"
-                className="bg-gold hover:bg-gold-light text-navy-dark px-6 py-2 rounded-lg font-semibold transition-colors"
-              >
-                Search
-              </button>
-              <Link
-                href="/search"
-                className="border-2 border-gold hover:bg-gold/10 px-6 py-2 rounded-lg font-semibold transition-colors text-navy-dark"
-              >
-                Clear
-              </Link>
-            </div>
-          </form>
+          {/* Results Count */}
+          <div className="mt-4 text-gray-600">
+            {loading && !initialLoad ? (
+              <span>{t('search.searching')}</span>
+            ) : (
+              <span>
+                {records.length} {t('search.recordsFound')}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Results */}
-        {records.length === 0 ? (
+        {records.length === 0 && !loading && !initialLoad ? (
           <div className="text-center py-16">
-            <p className="text-xl text-gray-600 mb-4">
-              No records found
-            </p>
+            <p className="text-xl text-gray-500 mb-4">{t('search.noRecords')}</p>
             <Link
               href="/submit"
-              className="text-gold hover:text-gold-light font-semibold hover:underline"
+              className="text-gold hover:text-gold-light font-semibold"
             >
-              Submit the first record
+              {t('search.submitFirst')}
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {records.map((record: any) => (
+            {records.map((record) => (
               <Link
-                key={record._id}
-                href={`/record/${record._id}`}
-                className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gold transition-colors shadow-sm"
+                key={record.id}
+                href={`/record/${record.id}`}
+                className="block bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-navy-dark">
-                    {record.firstName} {record.lastName}
-                  </h3>
-                  {record.verified ? (
-                    <span className="text-green-600 dark:text-green-500 text-2xl" title="Verified">
-                      ✓
-                    </span>
-                  ) : (
-                    <span className="text-yellow-600 dark:text-yellow-500 text-2xl" title="Unverified">
-                      ⚠
-                    </span>
-                  )}
-                </div>
+                {/* Victim Picture */}
+                {record.victim_picture_url ? (
+                  <div className="w-full h-48 bg-gray-100">
+                    <img
+                      src={record.victim_picture_url}
+                      alt={`${record.first_name} ${record.last_name}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+                    <span className="text-gray-400 text-6xl">👤</span>
+                  </div>
+                )}
 
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p>
-                    <span className="font-medium">Location:</span> {record.location}
+                <div className="p-4">
+                  {/* Names */}
+                  <h3 className="text-xl font-bold text-navy-dark mb-1" dir={language === 'fa' ? 'rtl' : 'ltr'}>
+                    {record.first_name} {record.last_name}
+                  </h3>
+                  {(record.first_name_en || record.last_name_en) && (
+                    <p className="text-sm text-gray-600 mb-2" dir="ltr">
+                      {record.first_name_en} {record.last_name_en}
+                    </p>
+                  )}
+
+                  {/* Victim Status */}
+                  {record.victim_status && (
+                    <p className="text-sm text-gray-700 mb-2">
+                      {victimStatusLabels[record.victim_status]?.[language] || record.victim_status}
+                    </p>
+                  )}
+
+                  {/* Location */}
+                  <p className="text-sm text-gray-600 mb-2">
+                    📍 {record.location}
                   </p>
-                  {record.birthYear && (
-                    <p>
-                      <span className="font-medium">Birth Year:</span> {record.birthYear}
+
+                  {/* Birth Year */}
+                  {record.birth_year && (
+                    <p className="text-sm text-gray-600 mb-2">
+                      {language === 'fa' ? '🎂' : '🎂'} {record.birth_year}
                     </p>
                   )}
-                  {record.mediaCount > 0 && (
-                    <p>
-                      <span className="font-medium">Media:</span> {record.mediaCount} file(s)
+
+                  {/* Verification Badge */}
+                  <div className="mt-3">
+                    {getVerificationBadge(record.verification_level)}
+                  </div>
+
+                  {/* Evidence Count */}
+                  {record.evidence_count > 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      📎 {record.evidence_count} {t('search.mediaCount')}
                     </p>
                   )}
-                  <p className="text-xs text-gray-500 pt-2">
-                    Submitted: {new Date(record.submittedAt).toLocaleDateString()}
+
+                  {/* Submitted Date */}
+                  <p className="text-xs text-gray-400 mt-2">
+                    {t('search.submitted')} {new Date(record.submitted_at).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}
                   </p>
                 </div>
               </Link>

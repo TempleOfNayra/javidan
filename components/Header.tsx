@@ -10,9 +10,9 @@ export default function Header() {
   return (
     <header className="bg-navy-dark border-b border-navy">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex justify-between items-center">
-          {/* Version */}
-          <div className="text-white/60 text-sm">
+        <div className="flex justify-between items-center relative">
+          {/* Version - Always on the left */}
+          <div className="text-white/60 text-sm absolute left-0" dir="ltr">
             {t('common.version')}
           </div>
 

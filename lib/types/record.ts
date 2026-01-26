@@ -29,9 +29,10 @@ export interface VictimRecord {
   // New fields
   hashtags?: string; // Comma-separated tags
   additionalInfo?: string; // Extra details, evidence description
+  perpetrator?: string; // Who was responsible (person, organization, group)
   twitterLinks: TwitterLink[]; // Array of Twitter/X links
   submitterTwitterId?: string; // Twitter ID of person submitting (optional)
-  victimStatus: 'killed' | 'incarcerated' | 'disappeared' | 'injured'; // Victim status
+  victimStatus: 'killed' | 'executed' | 'incarcerated' | 'disappeared' | 'injured' | 'other'; // Victim status
 
   // Media
   media: MediaFile[];
@@ -56,10 +57,11 @@ export interface SubmissionFormData {
   motherName?: string;
   hashtags?: string;
   additionalInfo?: string;
+  perpetrator?: string;
   twitterUrl1?: string;
   twitterUrl2?: string;
   twitterUrl3?: string;
   submitterTwitterId?: string;
-  victimStatus?: 'killed' | 'incarcerated' | 'disappeared' | 'injured';
+  victimStatus?: 'killed' | 'executed' | 'incarcerated' | 'disappeared' | 'injured' | 'other';
   files?: File[];
 }

@@ -25,9 +25,12 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold text-navy-dark mb-6">
+          <h2 className="text-5xl font-bold text-navy-dark mb-3">
             {t('home.title')}
           </h2>
+          <p className="text-2xl font-semibold text-red-600 mb-6 italic">
+            {t('home.subtitle')}
+          </p>
           <p className="text-xl text-gray-700 max-w-3xl mx-auto mb-8">
             {t('home.description')}
           </p>
