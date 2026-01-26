@@ -47,6 +47,7 @@ async function getRecord(id: string) {
       victimStatus: record.victim_status,
       hashtags: record.hashtags,
       additionalInfo: record.additional_info,
+      perpetrator: record.perpetrator,
       submitterTwitterId: record.submitter_twitter_id,
       twitterLinks: twitterResult.rows.map((t: any) => ({
         id: t.id,
