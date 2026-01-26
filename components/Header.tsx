@@ -4,7 +4,11 @@ import Link from 'next/link';
 import { useLanguage } from '@/lib/LanguageContext';
 import LanguageToggle from './LanguageToggle';
 
-export default function Header() {
+interface HeaderProps {
+  onSubmitClick?: () => void;
+}
+
+export default function Header({ onSubmitClick }: HeaderProps = {}) {
   const { t } = useLanguage();
 
   return (
@@ -34,12 +38,21 @@ export default function Header() {
               >
                 {t('nav.search')}
               </Link>
-              <Link
-                href="/submit"
-                className="text-white/80 hover:text-gold transition-colors"
-              >
-                {t('nav.submit')}
-              </Link>
+              {onSubmitClick ? (
+                <button
+                  onClick={onSubmitClick}
+                  className="text-white/80 hover:text-gold transition-colors"
+                >
+                  {t('nav.submit')}
+                </button>
+              ) : (
+                <Link
+                  href="/"
+                  className="text-white/80 hover:text-gold transition-colors"
+                >
+                  {t('nav.submit')}
+                </Link>
+              )}
             </nav>
             <LanguageToggle />
           </div>

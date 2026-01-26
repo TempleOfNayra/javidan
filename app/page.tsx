@@ -1,6 +1,5 @@
 import { sql } from '@/lib/db';
 import HomePage from '@/components/HomePage';
-import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 async function getRecentRecords() {
@@ -38,10 +37,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <Header />
-
-      {/* Client Component with Modal */}
+      {/* Client Component with Header, Modal, and Content */}
       <HomePage recentRecords={recentRecords} />
 
       {/* Footer */}

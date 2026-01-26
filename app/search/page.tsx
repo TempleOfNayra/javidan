@@ -145,7 +145,7 @@ export default function SearchPage() {
           <div className="text-center py-16">
             <p className="text-xl text-gray-500 mb-4">{t('search.noRecords')}</p>
             <Link
-              href="/submit"
+              href="/"
               className="text-gold hover:text-gold-light font-semibold"
             >
               {t('search.submitFirst')}

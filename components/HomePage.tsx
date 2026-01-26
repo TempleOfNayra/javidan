@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import SubmitModal from './SubmitModal';
+import Header from './Header';
 import { useLanguage } from '@/lib/LanguageContext';
 
 interface RecentRecord {
@@ -22,6 +23,8 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
 
   return (
     <>
+      <Header onSubmitClick={() => setIsModalOpen(true)} />
+
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-16">
