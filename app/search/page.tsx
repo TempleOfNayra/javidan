@@ -63,6 +63,18 @@ export default function SearchPage() {
   const [allResults, setAllResults] = useState<SearchResult[]>([]);
   const [filteredResults, setFilteredResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [categoryCounts, setCategoryCounts] = useState<Record<Category, number>>({
+    victims: 0,
+    agents: 0,
+    forces: 0,
+    videos: 0,
+    documents: 0,
+  });
+
+  // Fetch category counts on mount
+  useEffect(() => {
+    fetchAllCategoryCounts();
+  }, []);
 
   // Fetch all data when category changes
   useEffect(() => {
@@ -96,6 +108,39 @@ export default function SearchPage() {
     }
   }, [searchQuery, allResults]);
 
+  const fetchAllCategoryCounts = async () => {
+    try {
+      const categories: Category[] = ['victims', 'agents', 'forces', 'videos', 'documents'];
+      const counts: Record<Category, number> = {
+        victims: 0,
+        agents: 0,
+        forces: 0,
+        videos: 0,
+        documents: 0,
+      };
+
+      // Fetch counts for all categories in parallel
+      await Promise.all(
+        categories.map(async (category) => {
+          try {
+            const endpoint = categoryEndpoints[category];
+            const response = await fetch(`${endpoint}?limit=10000`);
+            const data = await response.json();
+            if (data.success && data.data) {
+              counts[category] = data.data.length;
+            }
+          } catch (error) {
+            console.error(`Error fetching count for ${category}:`, error);
+          }
+        })
+      );
+
+      setCategoryCounts(counts);
+    } catch (error) {
+      console.error('Error fetching category counts:', error);
+    }
+  };
+
   const fetchCategoryData = async () => {
     setLoading(true);
     setSearchQuery(''); // Clear search when switching categories
@@ -107,6 +152,11 @@ export default function SearchPage() {
       if (data.success) {
         setAllResults(data.data || []);
         setFilteredResults(data.data || []);
+        // Update count for current category
+        setCategoryCounts(prev => ({
+          ...prev,
+          [selectedCategory]: data.data?.length || 0
+        }));
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -221,7 +271,16 @@ export default function SearchPage() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {categoryLabels[category][language]}
+                  <div className="flex items-center justify-center gap-2">
+                    <span>{categoryLabels[category][language]}</span>
+                    <span className={`text-sm ${
+                      selectedCategory === category
+                        ? 'text-navy-dark/70'
+                        : 'text-gray-500'
+                    }`}>
+                      ({categoryCounts[category]})
+                    </span>
+                  </div>
                 </button>
               ))}
             </nav>
