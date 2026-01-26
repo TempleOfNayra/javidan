@@ -9,7 +9,7 @@ async function getRecentRecords() {
       SELECT r.*,
         (SELECT json_agg(json_build_object('url', m.public_url, 'type', m.type))
          FROM media m
-         WHERE m.record_id = r.id
+         WHERE m.record_id = r.id AND m.is_primary = true
          LIMIT 1) as media
       FROM records r
       ORDER BY r.submitted_at DESC
@@ -31,6 +31,10 @@ async function getRecentRecords() {
     return [];
   }
 }
+
+// Force dynamic rendering - don't cache this page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function Home() {
   const recentRecords = await getRecentRecords();
