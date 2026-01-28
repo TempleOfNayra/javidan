@@ -1,0 +1,80 @@
+[
+  {
+    "firstName": "رضا",
+    "lastName": "عظیم‌زاده",
+    "firstNameEn": "Reza",
+    "lastNameEn": "Azimzadeh",
+    "location": "ملکشاهی، ایلام",
+    "victimStatus": "killed",
+    "gender": "male",
+    "incidentDate": "2026-01-02",
+    "additionalInfo": "کشته شده در اعتراضات ملکشاهی"
+  },
+  {
+    "firstName": "لطیف",
+    "lastName": "کریمی",
+    "firstNameEn": "Latif",
+    "lastNameEn": "Karimi",
+    "location": "ملکشاهی، ایلام",
+    "victimStatus": "killed",
+    "gender": "male",
+    "incidentDate": "2026-01-02",
+    "additionalInfo": "کشته شده در اعتراضات ملکشاهی"
+  },
+  {
+    "firstName": "مهدی",
+    "lastName": "امامی‌پور",
+    "firstNameEn": "Mehdi",
+    "lastNameEn": "Emamipour",
+    "location": "ملکشاهی، ایلام",
+    "victimStatus": "killed",
+    "gender": "male",
+    "incidentDate": "2026-01-02",
+    "additionalInfo": "کشته شده در اعتراضات ملکشاهی"
+  },
+  {
+    "firstName": "امیرحسام",
+    "lastName": "خدایاری‌فرد",
+    "firstNameEn": "Amirhesam",
+    "lastNameEn": "Khodayarifard",
+    "location": "کوهدشت، لرستان",
+    "victimStatus": "killed",
+    "gender": "male",
+    "incidentDate": "2026-01-02",
+    "additionalInfo": "کشته شده در اعتراضات"
+  },
+  {
+    "firstName": "داریوش",
+    "lastName": "انصاری بختیاروند",
+    "firstNameEn": "Dariush",
+    "lastNameEn": "Ansari Bakhtiariwand",
+    "location": "فولادشهر، اصفهان",
+    "victimStatus": "killed",
+    "gender": "male",
+    "incidentDate": "2026-01-02",
+    "additionalInfo": "کشته شده در اعتراضات فولادشهر"
+  },
+  {
+    "firstName": "خداداد",
+    "lastName": "شیروانی",
+    "firstNameEn": "Khodadad",
+    "lastNameEn": "Shirvani",
+    "location": "مرودشت، فارس",
+    "victimStatus": "killed",
+    "gender": "male",
+    "incidentDate": "2026-01-02",
+    "additionalInfo": "کشته شده در اعتراضات مرودشت"
+  },
+  {
+    "firstName": "مبین",
+    "lastName": "فیلی",
+    "firstNameEn": "Mobin",
+    "lastNameEn": "Fili",
+    "location": "ایران",
+    "age": "24",
+    "victimStatus": "killed",
+    "gender": "male",
+    "incidentDate": "2026-01-13",
+    "additionalInfo": "۲۴ ساله، با شلیک گلوله در اعتراضات ۱۳ ژانویه ۲۰۲۶ کشته شد"
+  }
+]

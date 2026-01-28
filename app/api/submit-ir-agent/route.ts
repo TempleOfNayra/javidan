@@ -20,10 +20,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     // Extract text fields
-    const firstName = formData.get('firstName') as string;
-    const lastName = formData.get('lastName') as string;
-    const firstNameEn = formData.get('firstNameEn') as string | null;
-    const lastNameEn = formData.get('lastNameEn') as string | null;
+    const fullName = formData.get('fullName') as string | null;
+    const fullNameEn = formData.get('fullNameEn') as string | null;
     const agentType = formData.get('agentType') as string;
     const city = formData.get('city') as string | null;
     const country = formData.get('country') as string | null;
@@ -42,10 +40,35 @@ export async function POST(request: NextRequest) {
     const externalUrl3 = formData.get('twitterUrl3') as string | null;
     const submitterTwitterId = formData.get('submitterTwitterId') as string | null;
 
-    // Validate required fields
-    if (!firstName || !lastName || !agentType) {
+    // Split fullName into firstName/lastName for backward compatibility
+    let firstName: string | null = null;
+    let lastName: string | null = null;
+    let firstNameEn: string | null = null;
+    let lastNameEn: string | null = null;
+
+    if (fullName) {
+      const parts = fullName.trim().split(' ');
+      firstName = parts[0];
+      lastName = parts.slice(1).join(' ') || parts[0];
+    }
+
+    if (fullNameEn) {
+      const parts = fullNameEn.trim().split(' ');
+      firstNameEn = parts[0];
+      lastNameEn = parts.slice(1).join(' ') || parts[0];
+    }
+
+    // Validate required fields - names: at least one full name (Farsi OR English)
+    if (!fullName && !fullNameEn) {
       return NextResponse.json(
-        { error: 'Missing required fields: firstName, lastName, agentType' },
+        { error: 'Missing required fields: Must provide either fullName or fullNameEn' },
+        { status: 400 }
+      );
+    }
+
+    if (!agentType) {
+      return NextResponse.json(
+        { error: 'Missing required field: agentType' },
         { status: 400 }
       );
     }
@@ -145,12 +168,12 @@ export async function POST(request: NextRequest) {
     // Insert IR agent record into database
     const result = await sql`
       INSERT INTO ir_agents (
-        first_name, last_name, first_name_en, last_name_en, agent_type, city, country,
+        full_name, full_name_en, first_name, last_name, first_name_en, last_name_en, agent_type, city, country,
         address, residence_address, latitude, longitude, affiliation, role,
         twitter_handle, instagram_handle, hashtags, additional_info,
         submitter_twitter_id, evidence_count
       ) VALUES (
-        ${firstName}, ${lastName}, ${firstNameEn}, ${lastNameEn}, ${agentType}, ${city}, ${country},
+        ${fullName}, ${fullNameEn}, ${firstName}, ${lastName}, ${firstNameEn}, ${lastNameEn}, ${agentType}, ${city}, ${country},
         ${address}, ${residenceAddress}, ${latitude}, ${longitude}, ${affiliation}, ${role},
         ${twitterHandle}, ${instagramHandle}, ${hashtags}, ${additionalInfo},
         ${submitterTwitterId}, ${mediaFiles.length}

@@ -164,6 +164,8 @@
     "additionalInfoTitle": "اطلاعات تکمیلی (اختیاری)",
     "birthYear": "سال تولد",
     "birthYearPlaceholder": "مثال: ۱۳۷۴",
+    "age": "سن (هنگام واقعه)",
+    "agePlaceholder": "سن",
     "incidentDate": "تاریخ حادثه",
     "nationalId": "کد ملی",
     "fatherName": "نام پدر",

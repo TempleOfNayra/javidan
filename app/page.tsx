@@ -25,6 +25,8 @@ async function getRecentRecords() {
       id: row.id.toString(),
       firstName: row.first_name,
       lastName: row.last_name,
+      fullName: row.full_name,
+      fullNameEn: row.full_name_en,
       location: row.location,
       additionalInfo: row.additional_info,
       submitterTwitterId: row.submitter_twitter_id,

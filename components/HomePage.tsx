@@ -81,7 +81,7 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
                       <div className="flex-shrink-0">
                         <img
                           src={record.media.url}
-                          alt={`${record.firstName} ${record.lastName}`}
+                          alt={record.fullName || `${record.firstName} ${record.lastName}`}
                           className="w-16 h-16 object-cover rounded"
                         />
                       </div>
@@ -95,7 +95,9 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2 mb-1">
                         <h4 className="text-lg font-semibold text-navy-dark">
-                          {record.firstName} {record.lastName}
+                          {record.fullName ||
+                           record.fullNameEn ||
+                           (record.firstName && record.lastName ? `${record.firstName} ${record.lastName}` : 'Unknown')}
                         </h4>
                         <span className="text-sm text-gray-500">
                           {record.location}

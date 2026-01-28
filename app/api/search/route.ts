@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
       const result = await sql`
         SELECT
           r.id, r.first_name, r.last_name, r.first_name_en, r.last_name_en,
+          r.full_name, r.full_name_en,
           r.location, r.birth_year, r.national_id, r.father_name, r.mother_name,
           r.verified, r.verification_level, r.evidence_count, r.victim_status,
           r.submitted_at, r.updated_at,
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
     const result = await sql`
       SELECT
         r.id, r.first_name, r.last_name, r.first_name_en, r.last_name_en,
+        r.full_name, r.full_name_en,
         r.location, r.birth_year, r.national_id, r.father_name, r.mother_name,
         r.verified, r.verification_level, r.evidence_count, r.victim_status,
         r.submitted_at, r.updated_at,

@@ -13,6 +13,8 @@ interface SearchResult {
   last_name?: string;
   first_name_en?: string;
   last_name_en?: string;
+  full_name?: string;
+  full_name_en?: string;
   location?: string;
   city?: string;
   title?: string;
@@ -93,6 +95,8 @@ export default function SearchPage() {
           item.last_name,
           item.first_name_en,
           item.last_name_en,
+          item.full_name,
+          item.full_name_en,
           item.location,
           item.city,
           item.title,
@@ -210,8 +214,14 @@ export default function SearchPage() {
 
   const getResultTitle = (result: SearchResult) => {
     if (result.title) return result.title;
+    // Use fullName with fallback to firstName + lastName
+    if (result.full_name) return result.full_name;
     if (result.first_name && result.last_name) {
       return `${result.first_name} ${result.last_name}`;
+    }
+    if (result.full_name_en) return result.full_name_en;
+    if (result.first_name_en && result.last_name_en) {
+      return `${result.first_name_en} ${result.last_name_en}`;
     }
     return 'Unknown';
   };
@@ -229,9 +239,11 @@ export default function SearchPage() {
   };
 
   const getDetailPageUrl = (result: SearchResult) => {
-    const slug = slugify(result.first_name_en && result.last_name_en
-      ? `${result.first_name_en}-${result.last_name_en}`
-      : result.title);
+    const slug = slugify(
+      result.full_name_en ||
+      (result.first_name_en && result.last_name_en ? `${result.first_name_en}-${result.last_name_en}` : null) ||
+      result.title
+    );
 
     switch (selectedCategory) {
       case 'victims':
@@ -366,9 +378,9 @@ export default function SearchPage() {
                         </h3>
 
                         {/* English Name */}
-                        {(result.first_name_en || result.last_name_en) && (
+                        {(result.full_name_en || result.first_name_en || result.last_name_en) && (
                           <p className="text-sm text-gray-600 mb-2" dir="ltr">
-                            {result.first_name_en} {result.last_name_en}
+                            {result.full_name_en || `${result.first_name_en || ''} ${result.last_name_en || ''}`.trim()}
                           </p>
                         )}
 

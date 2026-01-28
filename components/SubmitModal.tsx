@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/LanguageContext';
+import TwitterExtractor from '@/components/TwitterExtractor';
 
 type SubmissionType = 'victim' | 'security-force' | 'ir-agent' | 'video' | 'evidence';
 
@@ -20,13 +21,12 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
   const [submissionType, setSubmissionType] = useState<SubmissionType>('victim');
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    firstNameEn: '',
-    lastNameEn: '',
+    fullName: '',
+    fullNameEn: '',
     location: '',
     city: '',
     birthYear: '',
+    age: '',
     incidentDate: '',
     nationalId: '',
     fatherName: '',
@@ -58,6 +58,10 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
   const [victimPicture, setVictimPicture] = useState<File | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  const [twitterExtractUrl, setTwitterExtractUrl] = useState('');
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractMessage, setExtractMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [extractedMedia, setExtractedMedia] = useState<{ url: string; type: 'image' | 'video'; isProfile: boolean; poster?: string }[]>([]);
 
   // Close modal on ESC key
   useEffect(() => {
@@ -68,12 +72,57 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  // Prevent body scroll when modal is open
+  // Prevent body scroll when modal is open and reset all states on close
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
+      // Reset all states when modal closes
+      setExtractedMedia([]);
+      setExtractMessage(null);
+      setTwitterExtractUrl('');
+      setVictimPicture(null);
+      setFiles([]);
+      setError('');
+      setSuccess(false);
+      setIsSubmitting(false);
+      setUploadProgress({});
+      // Reset form data
+      setFormData({
+        fullName: '',
+        fullNameEn: '',
+        location: '',
+        city: '',
+        birthYear: '',
+        age: '',
+        incidentDate: '',
+        nationalId: '',
+        fatherName: '',
+        motherName: '',
+        gender: '',
+        address: '',
+        residenceAddress: '',
+        latitude: '',
+        longitude: '',
+        organization: '',
+        rankPosition: '',
+        twitterHandle: '',
+        instagramHandle: '',
+        hashtags: '',
+        additionalInfo: '',
+        twitterUrl1: '',
+        twitterUrl2: '',
+        twitterUrl3: '',
+        submitterTwitterId: '',
+        victimStatus: '',
+        perpetrator: '',
+        agentType: '',
+        country: '',
+        affiliation: '',
+        role: '',
+        title: '',
+      });
     }
     return () => {
       document.body.style.overflow = 'unset';
@@ -118,6 +167,248 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
 
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleExtractFromTwitter = async () => {
+    if (!twitterExtractUrl.trim()) {
+      setExtractMessage({ type: 'error', text: 'لطفاً لینک توییتر را وارد کنید' });
+      return;
+    }
+
+    setIsExtracting(true);
+    setExtractMessage(null);
+
+    try {
+      const response = await fetch('/api/extract-tweet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: twitterExtractUrl }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to extract tweet');
+      }
+
+      const { data } = result;
+
+      let mediaCount = 0;
+      const mediaPreviews: { url: string; type: 'image' | 'video'; isProfile: boolean; poster?: string }[] = [];
+
+      // Download and set images (using server-side proxy to avoid CORS)
+      if (data.images && data.images.length > 0) {
+        const downloadedFiles: File[] = [];
+
+        for (let i = 0; i < data.images.length; i++) {
+          const imageUrl = data.images[i];
+
+          try {
+            // Use server-side download to avoid CORS issues
+            const downloadResponse = await fetch('/api/download-media', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: imageUrl, type: 'image' }),
+            });
+
+            if (!downloadResponse.ok) {
+              throw new Error(`Failed to download image: ${downloadResponse.status}`);
+            }
+
+            const { data: base64Data, size, type } = await downloadResponse.json();
+
+            // Convert base64 back to blob
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let j = 0; j < binaryString.length; j++) {
+              bytes[j] = binaryString.charCodeAt(j);
+            }
+            const blob = new Blob([bytes], { type });
+            const file = new File([blob], `tweet-image-${i + 1}.jpg`, { type: 'image/jpeg' });
+
+            console.log(`Downloaded image ${i + 1}: ${size} bytes`);
+
+            if (i === 0 && !victimPicture) {
+              // First image is profile picture (if not already set)
+              setVictimPicture(file);
+              mediaPreviews.push({ url: imageUrl, type: 'image', isProfile: data.isProfile || false });
+            } else {
+              // Rest are supporting documents
+              downloadedFiles.push(file);
+              mediaPreviews.push({ url: imageUrl, type: 'image', isProfile: false });
+            }
+            mediaCount++;
+          } catch (err) {
+            console.error('Failed to download image:', imageUrl, err);
+            // Continue with other images even if one fails
+          }
+        }
+
+        if (downloadedFiles.length > 0) {
+          setFiles((prev) => [...prev, ...downloadedFiles]);
+        }
+      }
+
+      // Download and set videos
+      if (data.videos && data.videos.length > 0) {
+        const downloadedFiles: File[] = [];
+
+        for (let i = 0; i < data.videos.length; i++) {
+          const video = data.videos[i];
+          const videoUrl = typeof video === 'string' ? video : video.url;
+          let posterUrl = typeof video === 'object' ? video.poster : undefined;
+
+          try {
+            // Download the video poster as profile picture if no images exist
+            if (posterUrl && i === 0 && data.images?.length === 0 && !victimPicture) {
+              try {
+                const posterResponse = await fetch('/api/download-media', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ url: posterUrl, type: 'image' }),
+                });
+
+                if (posterResponse.ok) {
+                  const { data: posterBase64, size: posterSize } = await posterResponse.json();
+                  const binaryString = atob(posterBase64);
+                  const bytes = new Uint8Array(binaryString.length);
+                  for (let j = 0; j < binaryString.length; j++) {
+                    bytes[j] = binaryString.charCodeAt(j);
+                  }
+                  const posterBlob = new Blob([bytes], { type: 'image/jpeg' });
+                  const posterFile = new File([posterBlob], `video-poster-${i + 1}.jpg`, { type: 'image/jpeg' });
+
+                  console.log(`Downloaded video poster as profile picture: ${posterSize} bytes`);
+                  setVictimPicture(posterFile);
+                  mediaCount++;
+                }
+              } catch (posterErr) {
+                console.error('Failed to download video poster:', posterErr);
+              }
+            }
+
+            // Download the actual video file
+            const downloadResponse = await fetch('/api/download-media', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: videoUrl, type: 'video' }),
+            });
+
+            if (!downloadResponse.ok) {
+              throw new Error(`Failed to download video: ${downloadResponse.status}`);
+            }
+
+            const { data: base64Data, size, type } = await downloadResponse.json();
+
+            // Validate size
+            if (size === 0) {
+              throw new Error('Downloaded video is empty (0 bytes)');
+            }
+
+            console.log(`Downloaded video ${i + 1}: ${size} bytes`);
+
+            // Convert base64 back to blob
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let j = 0; j < binaryString.length; j++) {
+              bytes[j] = binaryString.charCodeAt(j);
+            }
+            const blob = new Blob([bytes], { type });
+            const file = new File([blob], `tweet-video-${i + 1}.mp4`, { type: 'video/mp4' });
+            downloadedFiles.push(file);
+
+            // If no poster, use video URL
+            if (!posterUrl) {
+              posterUrl = videoUrl;
+            }
+
+            mediaPreviews.push({
+              url: videoUrl,
+              type: 'video',
+              isProfile: i === 0 && data.images?.length === 0 && data.isProfile || false,
+              poster: posterUrl
+            });
+            mediaCount++;
+          } catch (err) {
+            console.error('Failed to download video:', videoUrl, err);
+            // Continue with other videos even if one fails
+          }
+        }
+
+        if (downloadedFiles.length > 0) {
+          setFiles((prev) => [...prev, ...downloadedFiles]);
+        }
+      }
+
+      // Store media previews
+      setExtractedMedia(mediaPreviews);
+
+      // Set tweet text as additional info (prepend to existing text if any)
+      if (data.text) {
+        setFormData((prev) => ({
+          ...prev,
+          additionalInfo: prev.additionalInfo
+            ? `${data.text}\n\n${prev.additionalInfo}`
+            : data.text,
+        }));
+      }
+
+      // Set hashtags (prepend to existing hashtags if any)
+      if (data.hashtags && data.hashtags.length > 0) {
+        const newHashtags = data.hashtags.map((tag: string) => `#${tag}`).join(' ');
+        setFormData((prev) => ({
+          ...prev,
+          hashtags: prev.hashtags
+            ? `${newHashtags} ${prev.hashtags}`
+            : newHashtags,
+        }));
+      }
+
+      // If this is a profile extraction, populate the fullNameEn from authorName
+      // (Twitter names are typically in English)
+      if (data.isProfile && data.authorName) {
+        setFormData((prev) => ({
+          ...prev,
+          fullNameEn: data.authorName,
+        }));
+      }
+
+      // Set Twitter URL as first external link
+      setFormData((prev) => ({
+        ...prev,
+        twitterUrl1: twitterExtractUrl,
+      }));
+
+      const isProfile = data.isProfile;
+      const textExtracted = data.text ? (isProfile ? 'بیو' : 'متن توییت') : '';
+      const mediaText = mediaCount > 0 ? `${mediaCount} فایل` : '';
+      const hashtagText = data.hashtags?.length > 0 ? `${data.hashtags.length} هشتگ` : '';
+      const nameText = isProfile && data.authorName ? 'نام' : '';
+      const parts = [nameText, mediaText, textExtracted, hashtagText].filter(Boolean).join(' و ');
+
+      setExtractMessage({
+        type: 'success',
+        text: `✅ استخراج ${isProfile ? 'پروفایل' : 'توییت'} موفق! ${parts || 'اطلاعات'} دریافت شد.`,
+      });
+
+      // Scroll to victim info section after a short delay
+      setTimeout(() => {
+        const victimInfoSection = document.getElementById('victim-info-section');
+        if (victimInfoSection) {
+          victimInfoSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 800);
+
+      // Clear the extract URL
+      setTwitterExtractUrl('');
+
+    } catch (error) {
+      console.error('Extract error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'خطا در استخراج اطلاعات';
+      setExtractMessage({ type: 'error', text: errorMessage });
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const uploadFileToR2 = async (file: File): Promise<{ r2Key: string; publicUrl: string; fileName: string; fileSize: number; type: string }> => {
@@ -169,8 +460,65 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setError('');
+
+    // Client-side validation for required fields
+    const missingFields: string[] = [];
+
+    // Check if at least one full name exists (Farsi OR English)
+    const hasFarsiName = formData.fullName?.trim();
+    const hasEnglishName = formData.fullNameEn?.trim();
+
+    if (!hasFarsiName && !hasEnglishName) {
+      missingFields.push('نام کامل (فارسی یا انگلیسی) - Full Name (Farsi or English)');
+    }
+
+    // Type-specific validation
+    if (submissionType === 'victim') {
+      if (!formData.location?.trim()) {
+        missingFields.push('محل رویداد (Location)');
+      }
+      if (!formData.victimStatus) {
+        missingFields.push('وضعیت قربانی (Victim Status)');
+      }
+      if (!formData.gender) {
+        missingFields.push('جنسیت (Gender)');
+      }
+    } else if (submissionType === 'security-force') {
+      if (!formData.city?.trim()) {
+        missingFields.push('شهر (City)');
+      }
+    } else if (submissionType === 'ir-agent') {
+      if (!formData.country?.trim()) {
+        missingFields.push('کشور (Country)');
+      }
+    } else if (submissionType === 'video') {
+      if (!formData.title?.trim()) {
+        missingFields.push('عنوان (Title)');
+      }
+    } else if (submissionType === 'evidence') {
+      if (!formData.title?.trim()) {
+        missingFields.push('عنوان (Title)');
+      }
+    }
+
+    if (missingFields.length > 0) {
+      const errorMsg = `لطفاً فیلدهای الزامی را تکمیل کنید:\n${missingFields.join('\n• ')}`;
+      setError(errorMsg);
+
+      // Scroll to the first missing required field
+      setTimeout(() => {
+        if (!formData.victimStatus) {
+          document.getElementById('victim-status-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (!hasFarsiName && !hasEnglishName || !formData.location || !formData.gender) {
+          document.getElementById('victim-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+
+      return;
+    }
+
+    setIsSubmitting(true);
     setUploadProgress({});
 
     try {
@@ -190,6 +538,11 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
           submitData.append(key, value);
         }
       });
+
+      // Debug: Log what's being sent
+      console.log('Form data being submitted:', Object.fromEntries(
+        Object.entries(formData).filter(([_, v]) => v)
+      ));
 
       // Upload profile picture directly to R2 if present
       if (victimPicture) {
@@ -227,13 +580,12 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
 
       // Reset form
       setFormData({
-        firstName: '',
-        lastName: '',
-        firstNameEn: '',
-        lastNameEn: '',
+        fullName: '',
+        fullNameEn: '',
         location: '',
         city: '',
         birthYear: '',
+        age: '',
         incidentDate: '',
         nationalId: '',
         fatherName: '',
@@ -320,8 +672,8 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
           </p>
 
           {error && (
-            <div className="mb-6 bg-red-100 border border-red-200 rounded-lg p-4 text-red-700">
-              {error}
+            <div className="mb-6 bg-red-100 border border-red-200 rounded-lg p-4 text-red-700" dir="rtl">
+              <div className="whitespace-pre-line">{error}</div>
             </div>
           )}
 
@@ -399,6 +751,104 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
               </div>
             </div>
 
+            {/* Twitter Extractor - Available for all submission types */}
+            <TwitterExtractor
+              onExtract={async (data) => {
+                // Download and set profile picture (first image/video)
+                if (data.images.length > 0) {
+                  const response = await fetch('/api/download-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: data.images[0], type: 'image' }),
+                  });
+                  const { data: base64Data } = await response.json();
+                  const binaryString = atob(base64Data);
+                  const bytes = new Uint8Array(binaryString.length);
+                  for (let j = 0; j < binaryString.length; j++) {
+                    bytes[j] = binaryString.charCodeAt(j);
+                  }
+                  const blob = new Blob([bytes], { type: 'image/jpeg' });
+                  const file = new File([blob], 'twitter-image-1.jpg', { type: 'image/jpeg' });
+                  setVictimPicture(file);
+                }
+
+                // Download supporting documents (remaining images)
+                for (let i = 1; i < data.images.length; i++) {
+                  const response = await fetch('/api/download-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: data.images[i], type: 'image' }),
+                  });
+                  const { data: base64Data } = await response.json();
+                  const binaryString = atob(base64Data);
+                  const bytes = new Uint8Array(binaryString.length);
+                  for (let j = 0; j < binaryString.length; j++) {
+                    bytes[j] = binaryString.charCodeAt(j);
+                  }
+                  const blob = new Blob([bytes], { type: 'image/jpeg' });
+                  const file = new File([blob], `twitter-image-${i + 1}.jpg`, { type: 'image/jpeg' });
+                  setFiles(prev => [...prev, file]);
+                }
+
+                // Download videos
+                for (let i = 0; i < data.videos.length; i++) {
+                  const video = data.videos[i];
+                  const response = await fetch('/api/download-media', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: video.url, type: 'video' }),
+                  });
+                  const { data: base64Data } = await response.json();
+                  const binaryString = atob(base64Data);
+                  const bytes = new Uint8Array(binaryString.length);
+                  for (let j = 0; j < binaryString.length; j++) {
+                    bytes[j] = binaryString.charCodeAt(j);
+                  }
+                  const blob = new Blob([bytes], { type: 'video/mp4' });
+                  const file = new File([blob], `twitter-video-${i + 1}.mp4`, { type: 'video/mp4' });
+
+                  // First video becomes profile if no images
+                  if (i === 0 && data.images.length === 0 && !victimPicture) {
+                    setVictimPicture(file);
+                  } else {
+                    setFiles(prev => [...prev, file]);
+                  }
+
+                  // Download poster as profile if first video and no images
+                  if (video.poster && i === 0 && data.images.length === 0 && !victimPicture) {
+                    const posterResponse = await fetch('/api/download-media', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ url: video.poster, type: 'image' }),
+                    });
+                    const { data: posterBase64 } = await posterResponse.json();
+                    const posterBinary = atob(posterBase64);
+                    const posterBytes = new Uint8Array(posterBinary.length);
+                    for (let k = 0; k < posterBinary.length; k++) {
+                      posterBytes[k] = posterBinary.charCodeAt(k);
+                    }
+                    const posterBlob = new Blob([posterBytes], { type: 'image/jpeg' });
+                    const posterFile = new File([posterBlob], `video-poster-${i + 1}.jpg`, { type: 'image/jpeg' });
+                    setVictimPicture(posterFile);
+                  }
+                }
+
+                // Set form data
+                setFormData(prev => ({
+                  ...prev,
+                  additionalInfo: prev.additionalInfo
+                    ? `${prev.additionalInfo}\n\n${data.text}`
+                    : data.text,
+                  hashtags: data.hashtags.length > 0
+                    ? prev.hashtags
+                      ? `${data.hashtags.join(' ')} ${prev.hashtags}`
+                      : data.hashtags.join(' ')
+                    : prev.hashtags,
+                  twitterUrl1: !prev.twitterUrl1 ? data.url : prev.twitterUrl1,
+                }));
+              }}
+            />
+
             {/* Victim Form - Only show for Victim submission type */}
             {submissionType === 'victim' && (
               <>
@@ -438,8 +888,95 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
                   </div>
                 </div>
 
+                {/* Twitter Extract - Quick Info Fill */}
+                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg p-6 mb-6">
+                  <div className="flex items-start gap-3">
+                    <div className="text-3xl">🐦</div>
+                    <div className="flex-1">
+                      <h2 className="text-lg font-semibold text-navy-dark mb-2">
+                        استخراج خودکار از توییتر
+                      </h2>
+                      <p className="text-sm text-gray-700 mb-4 font-medium">
+                        لینک توییتر را وارد کنید تا تصاویر و متن به صورت خودکار استخراج شود
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={twitterExtractUrl}
+                          onChange={(e) => setTwitterExtractUrl(e.target.value)}
+                          placeholder="https://twitter.com/user/status/..."
+                          dir="ltr"
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent text-left"
+                          disabled={isExtracting}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleExtractFromTwitter}
+                          disabled={isExtracting || !twitterExtractUrl.trim()}
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                        >
+                          {isExtracting ? '⏳ در حال استخراج...' : '🔍 استخراج'}
+                        </button>
+                      </div>
+                      {extractMessage && (
+                        <div
+                          className={`mt-3 p-3 rounded-lg text-sm ${
+                            extractMessage.type === 'success'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                          dir="rtl"
+                        >
+                          {extractMessage.text}
+                        </div>
+                      )}
+
+                      {/* Media Previews */}
+                      {extractedMedia.length > 0 && (
+                        <div className="mt-4">
+                          <h3 className="text-sm font-semibold text-gray-700 mb-2" dir="rtl">
+                            محتوای استخراج شده:
+                          </h3>
+                          <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                            {extractedMedia.map((media, index) => (
+                              <div key={index} className="relative group">
+                                {media.type === 'image' ? (
+                                  <img
+                                    src={media.url}
+                                    alt={`Extracted ${index + 1}`}
+                                    className="w-full h-24 object-cover rounded-lg border-2 border-gray-200"
+                                  />
+                                ) : (
+                                  <div className="relative w-full h-24">
+                                    <video
+                                      src={media.url}
+                                      poster={media.poster}
+                                      className="w-full h-24 object-cover rounded-lg border-2 border-gray-200"
+                                      preload="metadata"
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center pointer-events-none">
+                                      <div className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center">
+                                        <div className="text-gray-800 text-xl ml-1">▶</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                                {media.isProfile && (
+                                  <div className="absolute top-1 right-1 bg-gold text-white text-xs px-2 py-1 rounded-full z-10">
+                                    پروفایل
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 {/* Victim Information Header */}
-                <div className="border-t-4 border-gray-300 pt-6 mb-6">
+                <div id="victim-info-section" className="border-t-4 border-gray-300 pt-6 mb-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="text-3xl">💔</div>
                     <div>
@@ -454,14 +991,14 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
                 </div>
 
                 {/* Victim Status Selection */}
-                <div>
+                <div id="victim-status-section">
                   <h2 className="text-lg font-semibold text-navy-dark mb-2">
                     {t('victimStatus.title')} *
                   </h2>
                   <div className="grid grid-cols-2 md:grid-cols-6 gap-3" dir="ltr">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, victimStatus: 'killed' })}
+                  onClick={() => setFormData(prev => ({ ...prev, victimStatus: 'killed' }))}
                   className={`p-3 border-2 rounded-lg transition-all ${
                     formData.victimStatus === 'killed'
                       ? 'border-gold bg-gold/10 shadow-md'
@@ -474,7 +1011,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
 
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, victimStatus: 'executed' })}
+                  onClick={() => setFormData(prev => ({ ...prev, victimStatus: 'executed' }))}
                   className={`p-3 border-2 rounded-lg transition-all ${
                     formData.victimStatus === 'executed'
                       ? 'border-gold bg-gold/10 shadow-md'
@@ -487,7 +1024,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
 
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, victimStatus: 'disappeared' })}
+                  onClick={() => setFormData(prev => ({ ...prev, victimStatus: 'disappeared' }))}
                   className={`p-3 border-2 rounded-lg transition-all ${
                     formData.victimStatus === 'disappeared'
                       ? 'border-gold bg-gold/10 shadow-md'
@@ -500,7 +1037,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
 
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, victimStatus: 'incarcerated' })}
+                  onClick={() => setFormData(prev => ({ ...prev, victimStatus: 'incarcerated' }))}
                   className={`p-3 border-2 rounded-lg transition-all ${
                     formData.victimStatus === 'incarcerated'
                       ? 'border-gold bg-gold/10 shadow-md'
@@ -513,7 +1050,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
 
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, victimStatus: 'injured' })}
+                  onClick={() => setFormData(prev => ({ ...prev, victimStatus: 'injured' }))}
                   className={`p-3 border-2 rounded-lg transition-all ${
                     formData.victimStatus === 'injured'
                       ? 'border-gold bg-gold/10 shadow-md'
@@ -526,7 +1063,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
 
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, victimStatus: 'other' })}
+                  onClick={() => setFormData(prev => ({ ...prev, victimStatus: 'other' }))}
                   className={`p-3 border-2 rounded-lg transition-all ${
                     formData.victimStatus === 'other'
                       ? 'border-gold bg-gold/10 shadow-md'
@@ -544,71 +1081,42 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
                     {t('form.requiredInfo')}
                   </h2>
                   <div className="space-y-4">
-                    {/* First and Last Name - on one line */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                          {t('form.firstName')} *
-                        </label>
-                        <input
-                          type="text"
-                          id="firstName"
-                          name="firstName"
-                          required
-                          value={formData.firstName}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
-                        />
-                      </div>
-
-                      <div>
-                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                          {t('form.lastName')} *
-                        </label>
-                        <input
-                          type="text"
-                          id="lastName"
-                          name="lastName"
-                          required
-                          value={formData.lastName}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
-                        />
-                      </div>
+                    {/* Full Name (Farsi) */}
+                    <div>
+                      <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                        نام کامل (فارسی) *
+                      </label>
+                      <input
+                        type="text"
+                        id="fullName"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
+                        placeholder="مثال: افسانه رضویان"
+                      />
                     </div>
 
-                    {/* English Names - on one line */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="firstNameEn" className="block text-sm font-medium text-gray-700 mb-1">
-                          {t('form.firstNameEn')}
-                        </label>
-                        <input
-                          type="text"
-                          id="firstNameEn"
-                          name="firstNameEn"
-                          value={formData.firstNameEn}
-                          onChange={handleInputChange}
-                          dir="ltr"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
-                        />
-                      </div>
-
-                      <div>
-                        <label htmlFor="lastNameEn" className="block text-sm font-medium text-gray-700 mb-1">
-                          {t('form.lastNameEn')}
-                        </label>
-                        <input
-                          type="text"
-                          id="lastNameEn"
-                          name="lastNameEn"
-                          value={formData.lastNameEn}
-                          onChange={handleInputChange}
-                          dir="ltr"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
-                        />
-                      </div>
+                    {/* Full Name (English) */}
+                    <div>
+                      <label htmlFor="fullNameEn" className="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name (English) *
+                      </label>
+                      <input
+                        type="text"
+                        id="fullNameEn"
+                        name="fullNameEn"
+                        value={formData.fullNameEn}
+                        onChange={handleInputChange}
+                        dir="ltr"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
+                        placeholder="Example: Afsaneh Razavian"
+                      />
                     </div>
+
+                    <p className="text-sm text-gray-500 -mt-2">
+                      * حداقل یکی از نام‌های فارسی یا انگلیسی را وارد کنید - At least one name (Farsi or English) is required
+                    </p>
 
                     {/* Gender dropdown */}
                     <div>
@@ -652,7 +1160,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
                   <h2 className="text-lg font-semibold text-navy-dark mb-3">
                     {t('form.additionalInfoTitle')}
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label htmlFor="birthYear" className="block text-sm font-medium text-gray-700 mb-1">
                         {t('form.birthYear')}
@@ -666,6 +1174,23 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
                         placeholder={t('form.birthYearPlaceholder')}
                         min="1900"
                         max={new Date().getFullYear()}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
+                        {t('form.age')}
+                      </label>
+                      <input
+                        type="number"
+                        id="age"
+                        name="age"
+                        value={formData.age}
+                        onChange={handleInputChange}
+                        placeholder={t('form.agePlaceholder')}
+                        min="0"
+                        max="150"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent"
                       />
                     </div>
@@ -965,58 +1490,38 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
                 </div>
 
                 {/* Names */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('form.firstName')} *
-                    </label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('form.lastName')} *
-                    </label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('form.firstNameEn')}
-                    </label>
-                    <input
-                      type="text"
-                      name="firstNameEn"
-                      value={formData.firstNameEn}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('form.lastNameEn')}
-                    </label>
-                    <input
-                      type="text"
-                      name="lastNameEn"
-                      value={formData.lastNameEn}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    نام کامل (فارسی) *
+                  </label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                    placeholder="مثال: حسن کریم‌زاده"
+                  />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name (English) *
+                  </label>
+                  <input
+                    type="text"
+                    name="fullNameEn"
+                    value={formData.fullNameEn}
+                    onChange={handleInputChange}
+                    dir="ltr"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                    placeholder="Example: Hasan Karimzadeh"
+                  />
+                </div>
+
+                <p className="text-sm text-gray-500 -mt-2">
+                  * حداقل یکی از نام‌های فارسی یا انگلیسی را وارد کنید - At least one name (Farsi or English) is required
+                </p>
 
                 {/* City */}
                 <div>
@@ -1381,58 +1886,38 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
                 </div>
 
                 {/* Names */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('irAgent.firstName')} *
-                    </label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('irAgent.lastName')} *
-                    </label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('irAgent.firstNameEn')}
-                    </label>
-                    <input
-                      type="text"
-                      name="firstNameEn"
-                      value={formData.firstNameEn}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {t('irAgent.lastNameEn')}
-                    </label>
-                    <input
-                      type="text"
-                      name="lastNameEn"
-                      value={formData.lastNameEn}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    نام کامل (فارسی) *
+                  </label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                    placeholder="مثال: علی خامنه‌ای"
+                  />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name (English) *
+                  </label>
+                  <input
+                    type="text"
+                    name="fullNameEn"
+                    value={formData.fullNameEn}
+                    onChange={handleInputChange}
+                    dir="ltr"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                    placeholder="Example: Ali Khamenei"
+                  />
+                </div>
+
+                <p className="text-sm text-gray-500 -mt-2">
+                  * حداقل یکی از نام‌های فارسی یا انگلیسی را وارد کنید - At least one name (Farsi or English) is required
+                </p>
 
                 {/* Location - Conditional: City for internal, Country for foreign */}
                 {formData.agentType === 'internal' && (

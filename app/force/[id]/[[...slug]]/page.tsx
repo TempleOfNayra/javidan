@@ -5,59 +5,57 @@ import Header from '@/components/Header';
 import AddMediaForm from '@/components/AddMediaForm';
 import AddProfilePicture from '@/components/AddProfilePicture';
 
-async function getAgent(id: string) {
+async function getSecurityForce(id: string) {
   try {
-    // Get agent
-    const agentResult = await sql`
-      SELECT * FROM ir_agents WHERE id = ${parseInt(id)}
+    // Get security force
+    const forceResult = await sql`
+      SELECT * FROM security_forces WHERE id = ${parseInt(id)}
     `;
 
-    if (agentResult.rows.length === 0) {
+    if (forceResult.rows.length === 0) {
       return null;
     }
 
-    const agent = agentResult.rows[0];
+    const force = forceResult.rows[0];
 
-    // Get media for this agent
+    // Get media for this security force
     const mediaResult = await sql`
-      SELECT * FROM media WHERE ir_agent_id = ${parseInt(id)}
+      SELECT * FROM media WHERE security_force_id = ${parseInt(id)}
     `;
 
-    // Get external links for this agent
+    // Get external links for this security force
     const linksResult = await sql`
-      SELECT * FROM external_links WHERE ir_agent_id = ${parseInt(id)} ORDER BY created_at
+      SELECT * FROM external_links WHERE security_force_id = ${parseInt(id)} ORDER BY created_at
     `;
 
     return {
-      _id: agent.id.toString(),
-      firstName: agent.first_name,
-      lastName: agent.last_name,
-      firstNameEn: agent.first_name_en,
-      lastNameEn: agent.last_name_en,
-      agentType: agent.agent_type,
-      city: agent.city,
-      country: agent.country,
-      address: agent.address,
-      residenceAddress: agent.residence_address,
-      latitude: agent.latitude,
-      longitude: agent.longitude,
-      affiliation: agent.affiliation,
-      role: agent.role,
-      twitterHandle: agent.twitter_handle,
-      instagramHandle: agent.instagram_handle,
-      hashtags: agent.hashtags,
-      additionalInfo: agent.additional_info,
-      submitterTwitterId: agent.submitter_twitter_id,
+      _id: force.id.toString(),
+      firstName: force.first_name,
+      lastName: force.last_name,
+      firstNameEn: force.first_name_en,
+      lastNameEn: force.last_name_en,
+      city: force.city,
+      address: force.address,
+      residenceAddress: force.residence_address,
+      latitude: force.latitude,
+      longitude: force.longitude,
+      organization: force.organization,
+      rankPosition: force.rank_position,
+      twitterHandle: force.twitter_handle,
+      instagramHandle: force.instagram_handle,
+      hashtags: force.hashtags,
+      additionalInfo: force.additional_info,
+      submitterTwitterId: force.submitter_twitter_id,
       externalLinks: linksResult.rows.map((link: any) => ({
         id: link.id,
         url: link.url,
         createdAt: link.created_at.toISOString(),
       })),
-      verified: agent.verified,
-      verificationLevel: agent.verification_level || 'unverified',
-      evidenceCount: agent.evidence_count || 0,
-      submittedAt: agent.submitted_at.toISOString(),
-      updatedAt: agent.updated_at.toISOString(),
+      verified: force.verified,
+      verificationLevel: force.verification_level || 'unverified',
+      evidenceCount: force.evidence_count || 0,
+      submittedAt: force.submitted_at.toISOString(),
+      updatedAt: force.updated_at.toISOString(),
       media: mediaResult.rows.map((m: any) => ({
         type: m.type,
         r2Key: m.r2_key,
@@ -69,30 +67,25 @@ async function getAgent(id: string) {
       })),
     };
   } catch (error) {
-    console.error('Error fetching agent:', error);
+    console.error('Error fetching security force:', error);
     return null;
   }
 }
 
-const agentTypeLabels: Record<string, string> = {
-  internal: 'داخلی',
-  external: 'خارجی',
-};
-
-export default async function AgentPage({
+export default async function SecurityForcePage({
   params,
 }: {
   params: Promise<{ id: string; slug?: string[] }>;
 }) {
   const resolvedParams = await params;
   // ID is used for lookup, slug is optional and ignored (for SEO only)
-  const agent = await getAgent(resolvedParams.id);
+  const force = await getSecurityForce(resolvedParams.id);
 
-  if (!agent) {
+  if (!force) {
     notFound();
   }
 
-  const primaryImage = agent.media.find((m) => m.isPrimary)?.publicUrl || agent.media.find((m) => m.type === 'image')?.publicUrl;
+  const primaryImage = force.media.find((m) => m.isPrimary)?.publicUrl || force.media.find((m) => m.type === 'image')?.publicUrl;
 
   return (
     <div className="min-h-screen bg-white">
@@ -108,7 +101,7 @@ export default async function AgentPage({
         </Link>
 
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          {/* Agent Info */}
+          {/* Security Force Info */}
           <div className="p-8">
             {/* Names with Profile Picture */}
             <div className="flex items-start gap-6 mb-6">
@@ -117,7 +110,7 @@ export default async function AgentPage({
                 {primaryImage ? (
                   <img
                     src={primaryImage}
-                    alt={agent.fullName || `${agent.firstName} ${agent.lastName}`}
+                    alt={force.fullName || `${force.firstName} ${force.lastName}`}
                     className="w-48 h-48 object-cover rounded-lg border-2 border-gray-200"
                   />
                 ) : (
@@ -128,7 +121,7 @@ export default async function AgentPage({
                         بدون تصویر
                       </p>
                     </div>
-                    <AddProfilePicture agentId={agent._id} />
+                    <AddProfilePicture forceId={force._id} />
                   </div>
                 )}
               </div>
@@ -136,90 +129,83 @@ export default async function AgentPage({
               {/* Right side: Names */}
               <div className="flex-1 flex justify-between items-baseline">
                 <h1 className="text-4xl font-bold text-navy-dark" dir="rtl">
-                  {agent.fullName || `${agent.firstName} ${agent.lastName}`}
+                  {force.fullName || `${force.firstName} ${force.lastName}`}
                 </h1>
-                {(agent.fullNameEn || agent.firstNameEn || agent.lastNameEn) && (
+                {(force.fullNameEn || force.firstNameEn || force.lastNameEn) && (
                   <p className="text-2xl text-gray-600" dir="ltr">
-                    {agent.fullNameEn || `${agent.firstNameEn} ${agent.lastNameEn}`}
+                    {force.fullNameEn || `${force.firstNameEn} ${force.lastNameEn}`}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Agent Type */}
+            {/* Force Type Badge */}
             <div className="mb-4">
               <span className="inline-block bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
-                {agentTypeLabels[agent.agentType] || agent.agentType}
+                نیروهای سرکوب
               </span>
             </div>
 
             {/* Basic Info Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" dir="rtl">
-              {agent.city && (
+              {force.city && (
                 <div>
                   <h3 className="text-sm font-semibold text-gray-500 mb-1">شهر</h3>
-                  <p className="text-lg text-navy-dark">{agent.city}</p>
+                  <p className="text-lg text-navy-dark">{force.city}</p>
                 </div>
               )}
 
-              {agent.country && (
+              {force.organization && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-500 mb-1">کشور</h3>
-                  <p className="text-lg text-navy-dark">{agent.country}</p>
+                  <h3 className="text-sm font-semibold text-gray-500 mb-1">سازمان/نیرو</h3>
+                  <p className="text-lg text-navy-dark">{force.organization}</p>
                 </div>
               )}
 
-              {agent.affiliation && (
+              {force.rankPosition && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-500 mb-1">وابستگی</h3>
-                  <p className="text-lg text-navy-dark">{agent.affiliation}</p>
-                </div>
-              )}
-
-              {agent.role && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-500 mb-1">نقش</h3>
-                  <p className="text-lg text-navy-dark">{agent.role}</p>
+                  <h3 className="text-sm font-semibold text-gray-500 mb-1">رتبه/سمت</h3>
+                  <p className="text-lg text-navy-dark">{force.rankPosition}</p>
                 </div>
               )}
             </div>
 
             {/* Address */}
-            {agent.address && (
+            {force.address && (
               <div className="mb-6" dir="rtl">
                 <h3 className="text-sm font-semibold text-gray-500 mb-1">آدرس</h3>
-                <p className="text-lg text-navy-dark">{agent.address}</p>
+                <p className="text-lg text-navy-dark">{force.address}</p>
               </div>
             )}
 
             {/* Residence Address */}
-            {agent.residenceAddress && (
+            {force.residenceAddress && (
               <div className="mb-6" dir="rtl">
                 <h3 className="text-sm font-semibold text-gray-500 mb-1">آدرس محل سکونت</h3>
-                <p className="text-lg text-navy-dark">{agent.residenceAddress}</p>
+                <p className="text-lg text-navy-dark">{force.residenceAddress}</p>
               </div>
             )}
 
             {/* Social Media */}
-            {(agent.twitterHandle || agent.instagramHandle) && (
+            {(force.twitterHandle || force.instagramHandle) && (
               <div className="mb-6" dir="rtl">
                 <h3 className="text-sm font-semibold text-gray-500 mb-2">شبکه‌های اجتماعی</h3>
                 <div className="space-y-2">
-                  {agent.twitterHandle && (
+                  {force.twitterHandle && (
                     <p className="text-lg text-navy-dark">
-                      <span className="text-gray-500">توییتر:</span> {agent.twitterHandle}
+                      <span className="text-gray-500">توییتر:</span> {force.twitterHandle}
                     </p>
                   )}
-                  {agent.instagramHandle && (
+                  {force.instagramHandle && (
                     <p className="text-lg text-navy-dark">
                       <span className="text-gray-500">اینستاگرام:</span>{' '}
                       <a
-                        href={agent.instagramHandle.startsWith('http') ? agent.instagramHandle : `https://instagram.com/${agent.instagramHandle}`}
+                        href={force.instagramHandle.startsWith('http') ? force.instagramHandle : `https://instagram.com/${force.instagramHandle}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-gold hover:text-gold-light"
                       >
-                        {agent.instagramHandle}
+                        {force.instagramHandle}
                       </a>
                     </p>
                   )}
@@ -228,27 +214,27 @@ export default async function AgentPage({
             )}
 
             {/* Additional Info */}
-            {agent.additionalInfo && (
+            {force.additionalInfo && (
               <div className="mb-6" dir="rtl">
                 <h3 className="text-sm font-semibold text-gray-500 mb-1">اطلاعات تکمیلی</h3>
-                <p className="text-lg text-navy-dark whitespace-pre-wrap">{agent.additionalInfo}</p>
+                <p className="text-lg text-navy-dark whitespace-pre-wrap">{force.additionalInfo}</p>
               </div>
             )}
 
             {/* Hashtags */}
-            {agent.hashtags && (
+            {force.hashtags && (
               <div className="mb-6" dir="rtl">
                 <h3 className="text-sm font-semibold text-gray-500 mb-2">هشتگ‌ها</h3>
-                <p className="text-lg text-navy-dark">{agent.hashtags}</p>
+                <p className="text-lg text-navy-dark">{force.hashtags}</p>
               </div>
             )}
 
             {/* External Links */}
-            {agent.externalLinks.length > 0 && (
+            {force.externalLinks.length > 0 && (
               <div className="mb-6" dir="rtl">
                 <h3 className="text-sm font-semibold text-gray-500 mb-2">لینک‌های مرتبط</h3>
                 <ul className="space-y-2">
-                  {agent.externalLinks.map((link: any) => (
+                  {force.externalLinks.map((link: any) => (
                     <li key={link.id}>
                       <a
                         href={link.url}
@@ -268,22 +254,22 @@ export default async function AgentPage({
             <div className="border-t pt-6 mt-6">
               <div className="flex items-center gap-4 mb-4" dir="rtl">
                 <span className="text-sm text-gray-500">وضعیت تأیید:</span>
-                {agent.verificationLevel === 'trusted' && (
+                {force.verificationLevel === 'trusted' && (
                   <span className="text-green-600 flex items-center gap-1">
                     <span>✓✓✓</span> تأیید شده
                   </span>
                 )}
-                {agent.verificationLevel === 'document' && (
+                {force.verificationLevel === 'document' && (
                   <span className="text-green-600 flex items-center gap-1">
                     <span>✓✓</span> تأیید شده
                   </span>
                 )}
-                {agent.verificationLevel === 'community' && (
+                {force.verificationLevel === 'community' && (
                   <span className="text-blue-600 flex items-center gap-1">
                     <span>✓</span> تأیید شده
                   </span>
                 )}
-                {agent.verificationLevel === 'unverified' && (
+                {force.verificationLevel === 'unverified' && (
                   <span className="text-yellow-600 flex items-center gap-1">
                     <span>⚠</span> تأیید نشده
                   </span>
@@ -293,14 +279,14 @@ export default async function AgentPage({
               {/* Submitter Info */}
               <div className="flex items-center gap-4" dir="rtl">
                 <span className="text-sm text-gray-500">ارسال شده توسط:</span>
-                {agent.submitterTwitterId ? (
+                {force.submitterTwitterId ? (
                   <a
-                    href={`https://twitter.com/${agent.submitterTwitterId}`}
+                    href={`https://twitter.com/${force.submitterTwitterId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-gold hover:text-gold-light"
                   >
-                    @{agent.submitterTwitterId}
+                    @{force.submitterTwitterId}
                   </a>
                 ) : (
                   <span className="text-gray-600">ناشناس</span>
@@ -309,13 +295,13 @@ export default async function AgentPage({
             </div>
 
             {/* Supporting Media */}
-            {agent.media.length > 1 && (
+            {force.media.length > 1 && (
               <div className="border-t pt-6 mt-6">
                 <h3 className="text-xl font-bold text-navy-dark mb-4" dir="rtl">
-                  مدارک و تصاویر ({agent.media.length})
+                  مدارک و تصاویر ({force.media.length})
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {agent.media.map((media: any, idx: number) => (
+                  {force.media.map((media: any, idx: number) => (
                     <a
                       key={idx}
                       href={media.publicUrl}
@@ -343,7 +329,7 @@ export default async function AgentPage({
             )}
 
             {/* Add Additional Media Form */}
-            <AddMediaForm agentId={agent._id} />
+            <AddMediaForm forceId={force._id} />
           </div>
         </div>
       </main>

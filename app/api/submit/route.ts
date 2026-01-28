@@ -8,12 +8,11 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
 
     // Extract text fields
-    const firstName = formData.get('firstName') as string;
-    const lastName = formData.get('lastName') as string;
-    const firstNameEn = formData.get('firstNameEn') as string | null;
-    const lastNameEn = formData.get('lastNameEn') as string | null;
+    const fullName = formData.get('fullName') as string | null;
+    const fullNameEn = formData.get('fullNameEn') as string | null;
     const location = formData.get('location') as string;
     const birthYear = formData.get('birthYear') ? parseInt(formData.get('birthYear') as string) : null;
+    const age = formData.get('age') ? parseInt(formData.get('age') as string) : null;
     const incidentDate = formData.get('incidentDate') as string | null;
     const nationalId = formData.get('nationalId') as string | null;
     const fatherName = formData.get('fatherName') as string | null;
@@ -28,24 +27,93 @@ export async function POST(request: NextRequest) {
     const victimStatus = formData.get('victimStatus') as string | null;
     const gender = formData.get('gender') as string | null;
 
-    // Validate required fields
-    if (!firstName || !lastName || !location || !victimStatus || !gender) {
+    // Split fullName into firstName/lastName for backward compatibility
+    let firstName: string | null = null;
+    let lastName: string | null = null;
+    let firstNameEn: string | null = null;
+    let lastNameEn: string | null = null;
+
+    if (fullName) {
+      const parts = fullName.trim().split(' ');
+      firstName = parts[0];
+      lastName = parts.slice(1).join(' ') || parts[0];
+    }
+
+    if (fullNameEn) {
+      const parts = fullNameEn.trim().split(' ');
+      firstNameEn = parts[0];
+      lastNameEn = parts.slice(1).join(' ') || parts[0];
+    }
+
+    // Debug logging
+    console.log('[SUBMIT] fullName:', fullName, '| fullNameEn:', fullNameEn, '| location:', location, '| victimStatus:', victimStatus, '| gender:', gender);
+
+    // Validate required fields - names: at least one full name (Farsi OR English)
+    if (!fullName && !fullNameEn) {
+      console.log('[VALIDATION FAILED] Neither Farsi nor English full name provided');
       return NextResponse.json(
-        { error: 'Missing required fields: firstName, lastName, location, victimStatus, gender' },
+        { error: 'Missing required fields: Must provide either fullName or fullNameEn' },
         { status: 400 }
       );
     }
 
-    // Handle victim picture (primary image)
-    const victimPictureFile = formData.get('victimPicture') as File | null;
+    if (!location || !victimStatus || !gender) {
+      console.log('[VALIDATION FAILED] location:', !location ? 'MISSING' : 'OK', '| victimStatus:', !victimStatus ? 'MISSING' : 'OK', '| gender:', !gender ? 'MISSING' : 'OK');
+      return NextResponse.json(
+        { error: 'Missing required fields: location, victimStatus, gender' },
+        { status: 400 }
+      );
+    }
+
+    // Handle media files - new approach with pre-uploaded R2 files
     const mediaFiles: Array<MediaFile & { isPrimary: boolean }> = [];
 
+    // Handle victim picture (primary media - can be image or video)
+    const uploadedProfilePictureStr = formData.get('uploadedProfilePicture') as string | null;
+    if (uploadedProfilePictureStr) {
+      const profilePicture = JSON.parse(uploadedProfilePictureStr);
+      mediaFiles.push({
+        type: profilePicture.type,
+        r2Key: profilePicture.r2Key,
+        publicUrl: profilePicture.publicUrl,
+        fileName: profilePicture.fileName,
+        fileSize: profilePicture.fileSize,
+        uploadedAt: new Date(),
+        isPrimary: true,
+      });
+    }
+
+    // Handle supporting files (pre-uploaded to R2)
+    const uploadedFilesStr = formData.get('uploadedFiles') as string | null;
+    if (uploadedFilesStr) {
+      const uploadedFiles = JSON.parse(uploadedFilesStr);
+      for (const file of uploadedFiles) {
+        mediaFiles.push({
+          type: file.type,
+          r2Key: file.r2Key,
+          publicUrl: file.publicUrl,
+          fileName: file.fileName,
+          fileSize: file.fileSize,
+          uploadedAt: new Date(),
+          isPrimary: false,
+        });
+      }
+    }
+
+    // Fallback: Handle old-style direct file uploads (for backwards compatibility)
+    const victimPictureFile = formData.get('victimPicture') as File | null;
     if (victimPictureFile && victimPictureFile.size > 0) {
-      const fileKey = generateFileKey(victimPictureFile.name, 'image');
+      // Determine file type
+      let mediaType: 'image' | 'video' | 'document' = 'image';
+      if (victimPictureFile.type.startsWith('video/')) {
+        mediaType = 'video';
+      }
+
+      const fileKey = generateFileKey(victimPictureFile.name, mediaType);
       const publicUrl = await uploadToR2(victimPictureFile, fileKey, victimPictureFile.type);
 
       mediaFiles.push({
-        type: 'image',
+        type: mediaType,
         r2Key: fileKey,
         publicUrl,
         fileName: victimPictureFile.name,
@@ -55,9 +123,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Handle supporting files
+    // Fallback: Handle old-style supporting files
     const files = formData.getAll('files') as File[];
-
     for (const file of files) {
       if (file.size > 0) {
         // Determine file type
@@ -87,11 +154,11 @@ export async function POST(request: NextRequest) {
     // Insert record into database
     const result = await sql`
       INSERT INTO records (
-        first_name, last_name, first_name_en, last_name_en, location, birth_year, incident_date, national_id,
+        full_name, full_name_en, first_name, last_name, first_name_en, last_name_en, location, birth_year, age, incident_date, national_id,
         father_name, mother_name, hashtags, additional_info, perpetrator, submitter_twitter_id,
         victim_status, gender, verified, verification_level, evidence_count
       ) VALUES (
-        ${firstName}, ${lastName}, ${firstNameEn}, ${lastNameEn}, ${location}, ${birthYear}, ${incidentDate}, ${nationalId},
+        ${fullName}, ${fullNameEn}, ${firstName}, ${lastName}, ${firstNameEn}, ${lastNameEn}, ${location}, ${birthYear}, ${age}, ${incidentDate}, ${nationalId},
         ${fatherName}, ${motherName}, ${hashtags}, ${additionalInfo}, ${perpetrator}, ${submitterTwitterId},
         ${victimStatus}, ${gender}, false, 'unverified', ${mediaFiles.length}
       )

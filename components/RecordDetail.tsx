@@ -1,113 +1,21 @@
+'use client';
+
 import Link from 'next/link';
-import { sql } from '@/lib/db';
-import { notFound } from 'next/navigation';
+import { useLanguage } from '@/lib/LanguageContext';
 import AddEvidenceSection from '@/components/AddEvidenceSection';
 import Header from '@/components/Header';
+import UpdateFieldButton from '@/components/UpdateFieldButton';
+import UpdateProfilePictureButton from '@/components/UpdateProfilePictureButton';
+import DeleteRecordButton from '@/components/DeleteRecordButton';
+import ProfileMediaDisplay from '@/components/ProfileMediaDisplay';
 
-async function getRecord(id: string) {
-  try {
-    // Get record
-    const recordResult = await sql`
-      SELECT * FROM records WHERE id = ${parseInt(id)}
-    `;
-
-    if (recordResult.rows.length === 0) {
-      return null;
-    }
-
-    const record = recordResult.rows[0];
-
-    // Get victim picture (primary image)
-    const victimPictureResult = await sql`
-      SELECT * FROM media WHERE record_id = ${parseInt(id)} AND is_primary = true LIMIT 1
-    `;
-
-    // Get supporting media (non-primary)
-    const mediaResult = await sql`
-      SELECT * FROM media WHERE record_id = ${parseInt(id)} AND (is_primary = false OR is_primary IS NULL)
-    `;
-
-    // Get Twitter links for this record
-    const twitterResult = await sql`
-      SELECT * FROM twitter_links WHERE record_id = ${parseInt(id)} ORDER BY created_at
-    `;
-
-    return {
-      _id: record.id.toString(),
-      firstName: record.first_name,
-      lastName: record.last_name,
-      firstNameEn: record.first_name_en,
-      lastNameEn: record.last_name_en,
-      location: record.location,
-      birthYear: record.birth_year,
-      incidentDate: record.incident_date ? new Date(record.incident_date).toISOString().split('T')[0] : null,
-      nationalId: record.national_id,
-      fatherName: record.father_name,
-      motherName: record.mother_name,
-      gender: record.gender,
-      victimStatus: record.victim_status,
-      hashtags: record.hashtags,
-      additionalInfo: record.additional_info,
-      perpetrator: record.perpetrator,
-      submitterTwitterId: record.submitter_twitter_id,
-      twitterLinks: twitterResult.rows.map((t: any) => ({
-        id: t.id,
-        url: t.url,
-        createdAt: t.created_at.toISOString(),
-      })),
-      verified: record.verified,
-      verificationLevel: record.verification_level || 'unverified',
-      evidenceCount: record.evidence_count || 0,
-      submittedAt: record.submitted_at.toISOString(),
-      updatedAt: record.updated_at.toISOString(),
-      victimPicture: victimPictureResult.rows.length > 0 ? {
-        type: victimPictureResult.rows[0].type,
-        r2Key: victimPictureResult.rows[0].r2_key,
-        publicUrl: victimPictureResult.rows[0].public_url,
-        fileName: victimPictureResult.rows[0].file_name,
-        fileSize: victimPictureResult.rows[0].file_size,
-        uploadedAt: victimPictureResult.rows[0].uploaded_at.toISOString(),
-      } : null,
-      media: mediaResult.rows.map((m: any) => ({
-        type: m.type,
-        r2Key: m.r2_key,
-        publicUrl: m.public_url,
-        fileName: m.file_name,
-        fileSize: m.file_size,
-        uploadedAt: m.uploaded_at.toISOString(),
-      })),
-    };
-  } catch (error) {
-    console.error('Error fetching record:', error);
-    return null;
-  }
+interface RecordDetailProps {
+  record: any;
+  id: string;
 }
 
-const victimStatusLabels: Record<string, string> = {
-  executed: 'اعدام شده',
-  killed: 'کشته شده',
-  incarcerated: 'زندانی',
-  disappeared: 'ناپدید شده',
-  injured: 'مجروح',
-  other: 'سایر',
-};
-
-const genderLabels: Record<string, string> = {
-  male: 'مرد',
-  female: 'زن',
-};
-
-export default async function RecordPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const record = await getRecord(id);
-
-  if (!record) {
-    notFound();
-  }
+export default function RecordDetail({ record, id }: RecordDetailProps) {
+  const { t, language } = useLanguage();
 
   const verificationBadge = () => {
     switch (record.verificationLevel) {
@@ -115,35 +23,35 @@ export default async function RecordPage({
         return (
           <span className="text-sm text-green-600 flex items-center gap-1">
             <span className="text-base">✓✓✓</span>
-            تأیید شده توسط منبع موثق
+            {t('record.verified.trusted')}
           </span>
         );
       case 'document':
         return (
           <span className="text-sm text-green-600 flex items-center gap-1">
             <span className="text-base">✓✓</span>
-            تأیید شده با مدرک
+            {t('record.verified.document')}
           </span>
         );
       case 'community':
         return (
           <span className="text-sm text-blue-600 flex items-center gap-1">
             <span className="text-base">✓</span>
-            تأیید شده توسط جامعه
+            {t('record.verified.community')}
           </span>
         );
       default:
         return (
           <span className="text-sm text-yellow-600 flex items-center gap-1">
             <span className="text-base">⚠</span>
-            تأیید نشده
+            {t('record.verified.unverified')}
           </span>
         );
     }
   };
 
   return (
-    <div className="min-h-screen bg-white" dir="rtl">
+    <div className="min-h-screen bg-white" dir={language === 'fa' ? 'rtl' : 'ltr'}>
       <Header />
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -152,34 +60,38 @@ export default async function RecordPage({
           href="/search"
           className="inline-flex items-center text-gray-600 hover:text-gold mb-8 transition-colors"
         >
-          → بازگشت به جستجو
+          {language === 'fa' ? '→' : '←'} {t('record.backToSearch')}
         </Link>
 
         {/* Centered Profile Section */}
         <div className="flex flex-col items-center mb-12">
-          {/* Victim Picture - Large and Centered */}
-          {record.victimPicture ? (
-            <div className="mb-6">
-              <img
-                src={record.victimPicture.publicUrl}
-                alt={`${record.firstName} ${record.lastName}`}
-                className="w-80 h-80 object-cover rounded-lg shadow-lg"
+          {/* Victim Picture/Video - Large and Centered */}
+          <ProfileMediaDisplay
+            victimPicture={record.victimPicture}
+            fullName={record.fullName}
+            firstName={record.firstName}
+            lastName={record.lastName}
+            supportingMedia={record.media}
+          />
+
+          {!record.victimPicture && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <UpdateProfilePictureButton
+                recordType="victim"
+                recordId={id}
+                hasPicture={!!record.victimPicture}
               />
-            </div>
-          ) : (
-            <div className="w-80 h-80 bg-gray-100 rounded-lg flex items-center justify-center mb-6 shadow-lg">
-              <span className="text-gray-400 text-9xl">👤</span>
             </div>
           )}
 
           {/* Names - Side by Side */}
           <div className="flex justify-between items-baseline w-full max-w-3xl mb-4">
             <h1 className="text-5xl font-bold text-navy-dark" dir="rtl">
-              {record.firstName} {record.lastName}
+              {record.fullName || (record.firstName && record.lastName ? `${record.firstName} ${record.lastName}` : 'Unknown')}
             </h1>
-            {(record.firstNameEn || record.lastNameEn) && (
+            {(record.fullNameEn || (record.firstNameEn && record.lastNameEn)) && (
               <h2 className="text-3xl font-semibold text-gray-600" dir="ltr">
-                {record.firstNameEn} {record.lastNameEn}
+                {record.fullNameEn || `${record.firstNameEn} ${record.lastNameEn}`}
               </h2>
             )}
           </div>
@@ -193,17 +105,17 @@ export default async function RecordPage({
         {/* Information */}
         <div className="bg-white rounded-lg border border-gray-200 p-8 mb-8 shadow-sm">
           <h2 className="text-2xl font-semibold text-navy-dark mb-6">
-            اطلاعات
+            {t('record.information')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Victim Status */}
             {record.victimStatus && (
               <div>
                 <p className="text-sm font-medium text-gray-500 mb-1">
-                  وضعیت قربانی
+                  {t('victimStatus.title')}
                 </p>
                 <p className="text-lg text-gray-900">
-                  {victimStatusLabels[record.victimStatus] || record.victimStatus}
+                  {t(`victimStatus.${record.victimStatus}`)}
                 </p>
               </div>
             )}
@@ -212,10 +124,10 @@ export default async function RecordPage({
             {record.gender && (
               <div>
                 <p className="text-sm font-medium text-gray-500 mb-1">
-                  جنسیت
+                  {t('form.gender')}
                 </p>
                 <p className="text-lg text-gray-900">
-                  {genderLabels[record.gender] || record.gender}
+                  {t(`form.${record.gender}`)}
                 </p>
               </div>
             )}
@@ -223,7 +135,7 @@ export default async function RecordPage({
             {/* Location */}
             <div>
               <p className="text-sm font-medium text-gray-500 mb-1">
-                محل حادثه
+                {t('record.locationOfIncident')}
               </p>
               <p className="text-lg text-gray-900">
                 {record.location}
@@ -231,70 +143,139 @@ export default async function RecordPage({
             </div>
 
             {/* Birth Year */}
-            {record.birthYear && (
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  سال تولد
-                </p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('record.birthYear')}</span>
+                {!record.birthYear && (
+                  <UpdateFieldButton
+                    recordType="victim"
+                    recordId={id}
+                    fieldName="birth_year"
+                    fieldLabel={t('record.birthYear')}
+                    fieldType="number"
+                    currentValue={record.birthYear}
+                  />
+                )}
+              </p>
+              {record.birthYear && (
                 <p className="text-lg text-gray-900">
                   {record.birthYear}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
+
+            {/* Age */}
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('form.age')}</span>
+                {!record.age && (
+                  <UpdateFieldButton
+                    recordType="victim"
+                    recordId={id}
+                    fieldName="age"
+                    fieldLabel={t('form.age')}
+                    fieldType="number"
+                    currentValue={record.age}
+                  />
+                )}
+              </p>
+              {record.age && (
+                <p className="text-lg text-gray-900">
+                  {record.age}
+                </p>
+              )}
+            </div>
 
             {/* Incident Date */}
-            {record.incidentDate && (
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  تاریخ حادثه
-                </p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('form.incidentDate')}</span>
+                {!record.incidentDate && (
+                  <UpdateFieldButton
+                    recordType="victim"
+                    recordId={id}
+                    fieldName="incident_date"
+                    fieldLabel={t('form.incidentDate')}
+                    fieldType="date"
+                    currentValue={record.incidentDate}
+                  />
+                )}
+              </p>
+              {record.incidentDate && (
                 <p className="text-lg text-gray-900">
-                  {new Date(record.incidentDate).toLocaleDateString('fa-IR')}
+                  {new Date(record.incidentDate).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* National ID */}
-            {record.nationalId && (
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  کد ملی
-                </p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('record.nationalId')}</span>
+                {!record.nationalId && (
+                  <UpdateFieldButton
+                    recordType="victim"
+                    recordId={id}
+                    fieldName="national_id"
+                    fieldLabel={t('record.nationalId')}
+                    currentValue={record.nationalId}
+                  />
+                )}
+              </p>
+              {record.nationalId && (
                 <p className="text-lg text-gray-900" dir="ltr">
                   {record.nationalId}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Father's Name */}
-            {record.fatherName && (
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  نام پدر
-                </p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('record.fatherName')}</span>
+                {!record.fatherName && (
+                  <UpdateFieldButton
+                    recordType="victim"
+                    recordId={id}
+                    fieldName="father_name"
+                    fieldLabel={t('record.fatherName')}
+                    currentValue={record.fatherName}
+                  />
+                )}
+              </p>
+              {record.fatherName && (
                 <p className="text-lg text-gray-900">
                   {record.fatherName}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Mother's Name */}
-            {record.motherName && (
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  نام مادر
-                </p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('record.motherName')}</span>
+                {!record.motherName && (
+                  <UpdateFieldButton
+                    recordType="victim"
+                    recordId={id}
+                    fieldName="mother_name"
+                    fieldLabel={t('record.motherName')}
+                    currentValue={record.motherName}
+                  />
+                )}
+              </p>
+              {record.motherName && (
                 <p className="text-lg text-gray-900">
                   {record.motherName}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Perpetrator */}
             {record.perpetrator && (
               <div className="md:col-span-2">
                 <p className="text-sm font-medium text-gray-500 mb-1">
-                  عامل جنایت
+                  {t('record.perpetrator')}
                 </p>
                 <p className="text-lg text-gray-900">
                   {record.perpetrator}
@@ -306,7 +287,7 @@ export default async function RecordPage({
             {record.hashtags && (
               <div className="md:col-span-2">
                 <p className="text-sm font-medium text-gray-500 mb-1">
-                  برچسب‌ها
+                  {t('record.tags')}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {record.hashtags.split(',').map((tag: string, index: number) => (
@@ -325,7 +306,7 @@ export default async function RecordPage({
             {record.twitterLinks && record.twitterLinks.length > 0 && (
               <div className="md:col-span-2">
                 <p className="text-sm font-medium text-gray-500 mb-1">
-                  منابع خارجی ({record.twitterLinks.length})
+                  {t('record.externalReferences')} ({record.twitterLinks.length})
                 </p>
                 <div className="space-y-1">
                   {record.twitterLinks.map((link: any, index: number) => (
@@ -349,7 +330,7 @@ export default async function RecordPage({
             {record.additionalInfo && (
               <div className="md:col-span-2">
                 <p className="text-sm font-medium text-gray-500 mb-1">
-                  اطلاعات تکمیلی
+                  {t('record.additionalInfo')}
                 </p>
                 <p className="text-lg text-gray-900 whitespace-pre-wrap">
                   {record.additionalInfo}
@@ -363,7 +344,7 @@ export default async function RecordPage({
         {record.media && record.media.length > 0 && (
           <div className="bg-white rounded-lg border border-gray-200 p-8 mb-8 shadow-sm">
             <h2 className="text-2xl font-semibold text-navy-dark mb-6">
-              مدارک پشتیبان ({record.media.length})
+              {t('record.media')} ({record.media.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {record.media.map((media: any, index: number) => (
@@ -377,7 +358,7 @@ export default async function RecordPage({
                     >
                       <img
                         src={media.publicUrl}
-                        alt={`مدرک ${index + 1}`}
+                        alt={`${t('record.media')} ${index + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                     </a>
@@ -385,8 +366,14 @@ export default async function RecordPage({
                     <video
                       src={media.publicUrl}
                       controls
+                      preload="metadata"
                       className="w-full aspect-square bg-gray-100 rounded-lg"
-                    />
+                    >
+                      {language === 'fa' ? 'متصفح شما از پخش ویدیو پشتیبانی نمی‌کند.' : 'Your browser does not support video playback.'}
+                      <a href={media.publicUrl} target="_blank" rel="noopener noreferrer">
+                        {language === 'fa' ? 'دانلود ویدیو' : 'Download Video'}
+                      </a>
+                    </video>
                   ) : (
                     <a
                       href={media.publicUrl}
@@ -413,10 +400,10 @@ export default async function RecordPage({
 
         {/* Metadata */}
         <div className="mt-8 text-center text-sm text-gray-500">
-          <p>ثبت شده در {new Date(record.submittedAt).toLocaleDateString('fa-IR')}</p>
+          <p>{t('record.submittedOn')} {new Date(record.submittedAt).toLocaleDateString(language === 'fa' ? 'fa-IR' : 'en-US')}</p>
           {record.submitterTwitterId && (
             <p>
-              ثبت شده توسط:{' '}
+              {t('record.submittedBy')}:{' '}
               <a
                 href={`https://twitter.com/${record.submitterTwitterId.replace('@', '')}`}
                 target="_blank"
@@ -428,9 +415,12 @@ export default async function RecordPage({
               </a>
             </p>
           )}
-          <p>شناسه رکورد: {record._id}</p>
+          <p>{t('record.recordId')}: {record._id}</p>
         </div>
       </main>
+
+      {/* Delete Button - Only visible in development */}
+      <DeleteRecordButton recordId={id} recordType="victim" />
     </div>
   );
 }
