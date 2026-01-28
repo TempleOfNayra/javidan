@@ -113,7 +113,7 @@ export default async function SecurityForcePage({
                   <div>
                     <img
                       src={primaryImage}
-                      alt={force.fullName || `${force.firstName} ${force.lastName}`}
+                      alt={force.fullName || force.fullNameEn || 'نام نامشخص'}
                       className="w-48 h-48 object-cover rounded-lg border-2 border-gray-200"
                     />
                     <AddProfilePicture agentId={force._id} hasExistingPhoto={true} />
@@ -134,11 +134,11 @@ export default async function SecurityForcePage({
               {/* Right side: Names */}
               <div className="flex-1 flex justify-between items-baseline">
                 <h1 className="text-4xl font-bold text-navy-dark" dir="rtl">
-                  {force.fullName || `${force.firstName} ${force.lastName}`}
+                  {force.fullName || 'نام نامشخص'}
                 </h1>
-                {(force.fullNameEn || force.firstNameEn || force.lastNameEn) && (
+                {force.fullNameEn && (
                   <p className="text-2xl text-gray-600" dir="ltr">
-                    {force.fullNameEn || `${force.firstNameEn} ${force.lastNameEn}`}
+                    {force.fullNameEn}
                   </p>
                 )}
               </div>

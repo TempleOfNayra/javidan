@@ -120,7 +120,7 @@ export default async function AgentPage({
                   <div>
                     <img
                       src={primaryImage}
-                      alt={agent.fullName || `${agent.firstName} ${agent.lastName}`}
+                      alt={agent.fullName || agent.fullNameEn || 'نام نامشخص'}
                       className="w-48 h-48 object-cover rounded-lg border-2 border-gray-200"
                     />
                     <AddProfilePicture agentId={agent._id} hasExistingPhoto={true} />
@@ -141,11 +141,11 @@ export default async function AgentPage({
               {/* Right side: Names */}
               <div className="flex-1 flex justify-between items-baseline">
                 <h1 className="text-4xl font-bold text-navy-dark" dir="rtl">
-                  {agent.fullName || `${agent.firstName} ${agent.lastName}`}
+                  {agent.fullName || 'نام نامشخص'}
                 </h1>
-                {(agent.fullNameEn || agent.firstNameEn || agent.lastNameEn) && (
+                {agent.fullNameEn && (
                   <p className="text-2xl text-gray-600" dir="ltr">
-                    {agent.fullNameEn || `${agent.firstNameEn} ${agent.lastNameEn}`}
+                    {agent.fullNameEn}
                   </p>
                 )}
               </div>

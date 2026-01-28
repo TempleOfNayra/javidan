@@ -87,11 +87,11 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
           {/* Names - Side by Side */}
           <div className="flex justify-between items-baseline w-full max-w-3xl mb-4">
             <h1 className="text-5xl font-bold text-navy-dark" dir="rtl">
-              {record.fullName || (record.firstName && record.lastName ? `${record.firstName} ${record.lastName}` : 'Unknown')}
+              {record.fullName || 'نام نامشخص'}
             </h1>
-            {(record.fullNameEn || (record.firstNameEn && record.lastNameEn)) && (
+            {record.fullNameEn && (
               <h2 className="text-3xl font-semibold text-gray-600" dir="ltr">
-                {record.fullNameEn || `${record.firstNameEn} ${record.lastNameEn}`}
+                {record.fullNameEn}
               </h2>
             )}
           </div>
