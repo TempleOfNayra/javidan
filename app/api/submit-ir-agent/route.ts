@@ -3,15 +3,6 @@ import { sql } from '@/lib/db';
 import { uploadToR2, generateFileKey } from '@/lib/r2';
 import { MediaFile } from '@/lib/types/record';
 
-// Configure route to allow larger file uploads (50MB)
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-  },
-};
-
 // Increase max duration for file processing
 export const maxDuration = 60;
 
