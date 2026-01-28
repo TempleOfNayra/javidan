@@ -9,6 +9,7 @@ interface TwitterExtractorProps {
     videos: Array<{ url: string; poster: string }>;
     hashtags: string[];
     url: string;
+    authorName?: string;
   }) => Promise<void>;
 }
 
@@ -89,6 +90,7 @@ export default function TwitterExtractor({ onExtract }: TwitterExtractorProps) {
         videos: data.videos || [],
         hashtags: data.hashtags || [],
         url: twitterUrl,
+        authorName: data.authorName,
       });
 
       setExtractMessage({

@@ -42,17 +42,18 @@ function extractUsername(url: string): string | null {
   }
 }
 
-// Extract profile information by fetching their latest tweet
+// Extract profile information using the correct syndication endpoint
 async function extractProfileInfo(username: string) {
+  console.log('[PROFILE EXTRACT] ===== STARTING PROFILE EXTRACTION FOR:', username);
   try {
-    // Use Twitter's public API endpoint to get user timeline
-    const url = `https://cdn.syndication.twimg.com/timeline/profile?screen_name=${username}&limit=1`;
-    console.log('[PROFILE EXTRACT] Fetching:', url);
+    // Use the correct Twitter syndication endpoint for profiles
+    const url = `https://syndication.twitter.com/srv/timeline-profile/screen-name/${username}`;
+    console.log('[PROFILE EXTRACT] Fetching URL:', url);
 
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       },
     });
 
@@ -65,27 +66,48 @@ async function extractProfileInfo(username: string) {
     }
 
     const responseText = await response.text();
-    console.log('[PROFILE EXTRACT] Response text:', responseText.substring(0, 500));
+    console.log('[PROFILE EXTRACT] Response text length:', responseText.length);
 
     if (!responseText || responseText.trim() === '') {
       throw new Error('Empty response from Twitter API');
     }
 
-    const data = JSON.parse(responseText);
-    console.log('[PROFILE EXTRACT] Parsed data:', JSON.stringify(data).substring(0, 500));
+    // The response is HTML with embedded JSON in __NEXT_DATA__ script tag
+    // Use [\s\S] instead of . to match newlines
+    const nextDataMatch = responseText.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
 
-    // Extract user info from the timeline response
-    if (data && data.user) {
-      return {
-        authorName: data.user.name || '',
-        author: data.user.screen_name || username,
-        bio: data.user.description || '',
-        profileImage: data.user.profile_image_url_https || '',
-        isProfile: true,
-      };
+    if (!nextDataMatch || !nextDataMatch[1]) {
+      console.error('[PROFILE EXTRACT] Could not find __NEXT_DATA__ in response');
+      throw new Error('Could not find profile data in response');
     }
 
-    throw new Error('No user data in response');
+    const data = JSON.parse(nextDataMatch[1]);
+    console.log('[PROFILE EXTRACT] Found NEXT_DATA');
+
+    // Navigate through the data structure to find user info
+    const timeline = data?.props?.pageProps?.timeline;
+    if (timeline && timeline.entries && timeline.entries.length > 0) {
+      const firstEntry = timeline.entries[0];
+      const user = firstEntry.content?.tweet?.user;
+
+      if (user) {
+        // Get profile image - replace _normal with _bigger for better quality
+        let profileImage = user.profile_image_url_https || '';
+        if (profileImage.includes('_normal.')) {
+          profileImage = profileImage.replace('_normal.', '_bigger.');
+        }
+
+        return {
+          authorName: user.name || '',
+          author: user.screen_name || username,
+          bio: user.description || '',
+          profileImage: profileImage,
+          isProfile: true,
+        };
+      }
+    }
+
+    throw new Error('No user data found in response');
   } catch (error) {
     console.error('[PROFILE EXTRACT] Profile extraction error:', error);
     throw error;

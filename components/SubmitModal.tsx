@@ -839,6 +839,7 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
                 // Set form data
                 setFormData(prev => ({
                   ...prev,
+                  fullNameEn: data.authorName && !prev.fullNameEn ? data.authorName : prev.fullNameEn,
                   additionalInfo: prev.additionalInfo
                     ? `${prev.additionalInfo}\n\n${data.text}`
                     : data.text,
