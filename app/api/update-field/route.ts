@@ -84,11 +84,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if the field is currently empty
-    const checkQuery = `SELECT ${fieldName} FROM ${tableName} WHERE id = $1`;
-    const currentValueResult = await sql.unsafe(checkQuery, [recordId]);
+    // Check if the field is currently empty and get current value
+    let currentValueResult;
+    if (tableName === 'records') {
+      currentValueResult = await sql`SELECT * FROM records WHERE id = ${recordId}`;
+    } else if (tableName === 'security_forces') {
+      currentValueResult = await sql`SELECT * FROM security_forces WHERE id = ${recordId}`;
+    } else if (tableName === 'ir_agents') {
+      currentValueResult = await sql`SELECT * FROM ir_agents WHERE id = ${recordId}`;
+    }
 
-    if (currentValueResult.rows.length === 0) {
+    if (!currentValueResult || currentValueResult.rows.length === 0) {
       return NextResponse.json(
         { error: 'Record not found' },
         { status: 404 }
@@ -105,9 +111,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update the field
-    const updateQuery = `UPDATE ${tableName} SET ${fieldName} = $1, updated_at = NOW() WHERE id = $2`;
-    await sql.unsafe(updateQuery, [value, recordId]);
+    // Update the field based on table
+    if (tableName === 'records' && fieldName === 'national_id') {
+      await sql`UPDATE records SET national_id = ${value}, updated_at = NOW() WHERE id = ${recordId}`;
+    } else if (tableName === 'records' && fieldName === 'father_name') {
+      await sql`UPDATE records SET father_name = ${value}, updated_at = NOW() WHERE id = ${recordId}`;
+    } else if (tableName === 'records' && fieldName === 'mother_name') {
+      await sql`UPDATE records SET mother_name = ${value}, updated_at = NOW() WHERE id = ${recordId}`;
+    } else {
+      return NextResponse.json(
+        { error: 'Invalid field for update' },
+        { status: 400 }
+      );
+    }
 
     // Log the update in audit table
     await sql`
