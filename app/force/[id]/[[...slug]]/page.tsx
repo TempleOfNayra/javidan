@@ -123,7 +123,7 @@ export default async function SecurityForcePage({
                         بدون تصویر
                       </p>
                     </div>
-                    <AddProfilePicture forceId={force._id} />
+                    <AddProfilePicture agentId={force._id} />
                   </div>
                 )}
               </div>
