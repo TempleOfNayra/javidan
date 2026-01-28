@@ -34,6 +34,8 @@ async function getSecurityForce(id: string) {
       lastName: force.last_name,
       firstNameEn: force.first_name_en,
       lastNameEn: force.last_name_en,
+      fullName: force.full_name,
+      fullNameEn: force.full_name_en,
       city: force.city,
       address: force.address,
       residenceAddress: force.residence_address,

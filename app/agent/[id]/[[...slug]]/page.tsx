@@ -34,6 +34,8 @@ async function getAgent(id: string) {
       lastName: agent.last_name,
       firstNameEn: agent.first_name_en,
       lastNameEn: agent.last_name_en,
+      fullName: agent.full_name,
+      fullNameEn: agent.full_name_en,
       agentType: agent.agent_type,
       city: agent.city,
       country: agent.country,
