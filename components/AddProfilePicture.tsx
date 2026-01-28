@@ -13,6 +13,7 @@ export default function AddProfilePicture({ agentId, hasExistingPhoto = false }:
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -102,6 +103,37 @@ export default function AddProfilePicture({ agentId, hasExistingPhoto = false }:
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm('آیا از حذف تصویر پروفایل اطمینان دارید؟')) {
+      return;
+    }
+
+    setDeleting(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/agents/${agentId}/delete-primary-media`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'تصویر پروفایل با موفقیت حذف شد.' });
+        setTimeout(() => {
+          router.refresh();
+        }, 500);
+      } else {
+        setMessage({ type: 'error', text: data.error || 'خطا در حذف تصویر' });
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      setMessage({ type: 'error', text: 'خطا در حذف تصویر. لطفاً دوباره تلاش کنید.' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Only show for non-existing photos OR in dev mode
   if (!isDev && hasExistingPhoto) {
     return null;
@@ -140,10 +172,21 @@ export default function AddProfilePicture({ agentId, hasExistingPhoto = false }:
         {file && (
           <button
             type="submit"
-            disabled={uploading}
+            disabled={uploading || deleting}
             className="w-full text-sm bg-gold hover:bg-gold-dark text-navy-dark font-semibold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {uploading ? 'در حال آپلود...' : hasExistingPhoto ? 'جایگزینی تصویر' : 'آپلود تصویر'}
+          </button>
+        )}
+
+        {isDev && hasExistingPhoto && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={uploading || deleting}
+            className="w-full text-sm bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {deleting ? 'در حال حذف...' : 'حذف تصویر'}
           </button>
         )}
 

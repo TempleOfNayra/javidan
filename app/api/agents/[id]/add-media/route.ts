@@ -78,8 +78,17 @@ export async function POST(
     // Insert all media into database
     for (let i = 0; i < uploadedFiles.length; i++) {
       const fileData = uploadedFiles[i];
-      // Set first image as primary if no primary exists and this is an image
-      const isPrimary = !hasPrimaryImage && i === 0 && fileData.type === 'image';
+      // Set first image as primary if it's an image
+      const isPrimary = i === 0 && fileData.type === 'image';
+
+      // If this will be the new primary, unset the old primary first
+      if (isPrimary && hasPrimaryImage) {
+        await sql`
+          UPDATE media
+          SET is_primary = false
+          WHERE ir_agent_id = ${agentId} AND is_primary = true
+        `;
+      }
 
       await sql`
         INSERT INTO media (
