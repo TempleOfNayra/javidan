@@ -10,6 +10,8 @@ interface RecentRecord {
   id: string;
   firstName: string;
   lastName: string;
+  fullName?: string;
+  fullNameEn?: string;
   location: string;
   additionalInfo?: string;
   submitterTwitterId?: string;

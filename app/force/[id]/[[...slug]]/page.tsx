@@ -331,7 +331,7 @@ export default async function SecurityForcePage({
             )}
 
             {/* Add Additional Media Form */}
-            <AddMediaForm forceId={force._id} />
+            <AddMediaForm agentId={force._id} />
           </div>
         </div>
       </main>
