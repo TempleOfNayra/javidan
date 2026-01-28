@@ -489,7 +489,10 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
         missingFields.push('شهر (City)');
       }
     } else if (submissionType === 'ir-agent') {
-      if (!formData.country?.trim()) {
+      if (formData.agentType === 'internal' && !formData.city?.trim()) {
+        missingFields.push('شهر (City)');
+      }
+      if (formData.agentType === 'foreign' && !formData.country?.trim()) {
         missingFields.push('کشور (Country)');
       }
     } else if (submissionType === 'video') {
