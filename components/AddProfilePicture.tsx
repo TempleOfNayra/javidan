@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 
 interface AddProfilePictureProps {
   agentId: string;
+  hasExistingPhoto?: boolean;
 }
 
-export default function AddProfilePicture({ agentId }: AddProfilePictureProps) {
+export default function AddProfilePicture({ agentId, hasExistingPhoto = false }: AddProfilePictureProps) {
+  const isDev = process.env.NODE_ENV === 'development';
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -100,8 +102,21 @@ export default function AddProfilePicture({ agentId }: AddProfilePictureProps) {
     }
   };
 
+  // Only show for non-existing photos OR in dev mode
+  if (!isDev && hasExistingPhoto) {
+    return null;
+  }
+
   return (
     <div className="mt-4">
+      {isDev && hasExistingPhoto && (
+        <div className="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-xs text-yellow-800" dir="rtl">
+            🔧 وضعیت توسعه‌دهنده: تغییر یا حذف عکس پروفایل
+          </p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <input
@@ -118,7 +133,7 @@ export default function AddProfilePicture({ agentId }: AddProfilePictureProps) {
             className="w-full text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg transition-colors"
             disabled={uploading}
           >
-            {file ? file.name : 'انتخاب تصویر'}
+            {file ? file.name : hasExistingPhoto ? 'تغییر تصویر' : 'انتخاب تصویر'}
           </button>
         </div>
 
@@ -128,7 +143,7 @@ export default function AddProfilePicture({ agentId }: AddProfilePictureProps) {
             disabled={uploading}
             className="w-full text-sm bg-gold hover:bg-gold-dark text-navy-dark font-semibold py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {uploading ? 'در حال آپلود...' : 'آپلود تصویر'}
+            {uploading ? 'در حال آپلود...' : hasExistingPhoto ? 'جایگزینی تصویر' : 'آپلود تصویر'}
           </button>
         )}
 

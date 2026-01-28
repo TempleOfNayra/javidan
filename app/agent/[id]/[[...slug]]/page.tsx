@@ -117,11 +117,14 @@ export default async function AgentPage({
               {/* Left side: Profile Picture */}
               <div className="flex-shrink-0">
                 {primaryImage ? (
-                  <img
-                    src={primaryImage}
-                    alt={agent.fullName || `${agent.firstName} ${agent.lastName}`}
-                    className="w-48 h-48 object-cover rounded-lg border-2 border-gray-200"
-                  />
+                  <div>
+                    <img
+                      src={primaryImage}
+                      alt={agent.fullName || `${agent.firstName} ${agent.lastName}`}
+                      className="w-48 h-48 object-cover rounded-lg border-2 border-gray-200"
+                    />
+                    <AddProfilePicture agentId={agent._id} hasExistingPhoto={true} />
+                  </div>
                 ) : (
                   <div>
                     <div className="w-48 h-48 bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center">
@@ -130,7 +133,7 @@ export default async function AgentPage({
                         بدون تصویر
                       </p>
                     </div>
-                    <AddProfilePicture agentId={agent._id} />
+                    <AddProfilePicture agentId={agent._id} hasExistingPhoto={false} />
                   </div>
                 )}
               </div>
