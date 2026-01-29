@@ -6,20 +6,18 @@ type Category = 'victims' | 'agents' | 'forces' | 'videos' | 'documents';
 
 async function getCategoryCounts(): Promise<Record<Category, number>> {
   try {
-    const [victimsCount, agentsCount, forcesCount, videosCount, documentsCount] = await Promise.all([
+    const [victimsCount, agentsCount, forcesCount] = await Promise.all([
       sql`SELECT COUNT(*) as count FROM records`,
       sql`SELECT COUNT(*) as count FROM ir_agents`,
       sql`SELECT COUNT(*) as count FROM security_forces`,
-      sql`SELECT COUNT(*) as count FROM videos`,
-      sql`SELECT COUNT(*) as count FROM documents`,
     ]);
 
     return {
       victims: Number(victimsCount.rows[0]?.count || 0),
       agents: Number(agentsCount.rows[0]?.count || 0),
       forces: Number(forcesCount.rows[0]?.count || 0),
-      videos: Number(videosCount.rows[0]?.count || 0),
-      documents: Number(documentsCount.rows[0]?.count || 0),
+      videos: 0, // TODO: Add videos table
+      documents: 0, // TODO: Add documents table
     };
   } catch (error) {
     console.error('[HOME PAGE] Error fetching category counts:', error);
