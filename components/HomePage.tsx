@@ -29,23 +29,26 @@ interface HomePageProps {
 
 export default function HomePage({ recentRecords, categoryCounts }: HomePageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <>
       <Header onSubmitClick={() => setIsModalOpen(true)} />
 
       {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="flex gap-8">
-          {/* Left Sidebar - Category Navigation */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
+        {/* Floating Sidebar - Category Navigation (right for Farsi, left for English) */}
+        <div className="absolute top-16 hidden lg:block" style={{
+          right: language === 'fa' ? '1rem' : 'auto',
+          left: language === 'fa' ? 'auto' : '1rem'
+        }}>
           <CategoryNav
             categoryCounts={categoryCounts}
             mode="navigate"
           />
+        </div>
 
-          {/* Main Content */}
-          <div className="flex-1">
+        {/* Main Content - Full Width */}
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold text-navy-dark mb-3">
             {t('home.title')}
@@ -149,9 +152,6 @@ export default function HomePage({ recentRecords, categoryCounts }: HomePageProp
             </div>
           </div>
         )}
-
-          </div>
-        </div>
 
         {/* Open Source Notice */}
         <div className="mt-16 text-center max-w-3xl mx-auto">

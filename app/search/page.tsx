@@ -278,6 +278,15 @@ function SearchPageContent() {
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        {/* Back to Home Link */}
+        <Link
+          href="/"
+          className="inline-flex items-center text-gray-600 hover:text-gold mb-6 transition-colors"
+          dir={language === 'fa' ? 'rtl' : 'ltr'}
+        >
+          {language === 'fa' ? '→' : '←'} {language === 'fa' ? 'بازگشت به صفحه اصلی' : 'Back to Home'}
+        </Link>
+
         <div className="flex gap-8">
           {/* Left Sidebar - Category Selection */}
           <CategoryNav
