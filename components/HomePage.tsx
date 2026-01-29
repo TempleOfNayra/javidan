@@ -66,18 +66,12 @@ export default function HomePage({ recentRecords, categoryCounts }: HomePageProp
             >
               {t('home.submitButton')}
             </button>
-            <Link
-              href="/search"
-              className="border-2 border-gold hover:bg-gold/10 px-8 py-3 rounded-lg font-semibold transition-colors text-navy-dark"
-            >
-              {t('home.searchButton')}
-            </Link>
           </div>
         </div>
 
         {/* Recent Submissions Feed */}
         {recentRecords.length > 0 && (
-          <div className="mb-16">
+          <div className="mb-16 mt-24 lg:mt-32">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-navy-dark">
                 {t('home.recentSubmissions')}

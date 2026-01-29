@@ -58,10 +58,6 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
   const [victimPicture, setVictimPicture] = useState<File | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
-  const [twitterExtractUrl, setTwitterExtractUrl] = useState('');
-  const [isExtracting, setIsExtracting] = useState(false);
-  const [extractMessage, setExtractMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [extractedMedia, setExtractedMedia] = useState<{ url: string; type: 'image' | 'video'; isProfile: boolean; poster?: string }[]>([]);
 
   // Close modal on ESC key
   useEffect(() => {
@@ -888,93 +884,6 @@ export default function SubmitModal({ isOpen, onClose }: SubmitModalProps) {
                           {t('form.twitterNote')}
                         </p>
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Twitter Extract - Quick Info Fill */}
-                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg p-6 mb-6">
-                  <div className="flex items-start gap-3">
-                    <div className="text-3xl">🐦</div>
-                    <div className="flex-1">
-                      <h2 className="text-lg font-semibold text-navy-dark mb-2">
-                        استخراج خودکار از توییتر
-                      </h2>
-                      <p className="text-sm text-gray-700 mb-4 font-medium">
-                        لینک توییتر را وارد کنید تا تصاویر و متن به صورت خودکار استخراج شود
-                      </p>
-                      <div className="flex gap-2">
-                        <input
-                          type="url"
-                          value={twitterExtractUrl}
-                          onChange={(e) => setTwitterExtractUrl(e.target.value)}
-                          placeholder="https://twitter.com/user/status/..."
-                          dir="ltr"
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-gold focus:border-transparent text-left"
-                          disabled={isExtracting}
-                        />
-                        <button
-                          type="button"
-                          onClick={handleExtractFromTwitter}
-                          disabled={isExtracting || !twitterExtractUrl.trim()}
-                          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
-                        >
-                          {isExtracting ? '⏳ در حال استخراج...' : '🔍 استخراج'}
-                        </button>
-                      </div>
-                      {extractMessage && (
-                        <div
-                          className={`mt-3 p-3 rounded-lg text-sm ${
-                            extractMessage.type === 'success'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
-                          dir="rtl"
-                        >
-                          {extractMessage.text}
-                        </div>
-                      )}
-
-                      {/* Media Previews */}
-                      {extractedMedia.length > 0 && (
-                        <div className="mt-4">
-                          <h3 className="text-sm font-semibold text-gray-700 mb-2" dir="rtl">
-                            محتوای استخراج شده:
-                          </h3>
-                          <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-                            {extractedMedia.map((media, index) => (
-                              <div key={index} className="relative group">
-                                {media.type === 'image' ? (
-                                  <img
-                                    src={media.url}
-                                    alt={`Extracted ${index + 1}`}
-                                    className="w-full h-24 object-cover rounded-lg border-2 border-gray-200"
-                                  />
-                                ) : (
-                                  <div className="relative w-full h-24">
-                                    <video
-                                      src={media.url}
-                                      poster={media.poster}
-                                      className="w-full h-24 object-cover rounded-lg border-2 border-gray-200"
-                                      preload="metadata"
-                                    />
-                                    <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center pointer-events-none">
-                                      <div className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center">
-                                        <div className="text-gray-800 text-xl ml-1">▶</div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                {media.isProfile && (
-                                  <div className="absolute top-1 right-1 bg-gold text-white text-xs px-2 py-1 rounded-full z-10">
-                                    پروفایل
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
