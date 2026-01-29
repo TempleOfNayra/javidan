@@ -4,7 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import SubmitModal from './SubmitModal';
 import Header from './Header';
+import CategoryNav from './CategoryNav';
 import { useLanguage } from '@/lib/LanguageContext';
+
+type Category = 'victims' | 'agents' | 'forces' | 'videos' | 'documents';
 
 interface RecentRecord {
   id: string;
@@ -19,7 +22,12 @@ interface RecentRecord {
   media?: { url: string; type: string } | null;
 }
 
-export default function HomePage({ recentRecords }: { recentRecords: RecentRecord[] }) {
+interface HomePageProps {
+  recentRecords: RecentRecord[];
+  categoryCounts: Record<Category, number>;
+}
+
+export default function HomePage({ recentRecords, categoryCounts }: HomePageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { t } = useLanguage();
 
@@ -29,6 +37,15 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
 
       {/* Hero Section */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="flex gap-8">
+          {/* Left Sidebar - Category Navigation */}
+          <CategoryNav
+            categoryCounts={categoryCounts}
+            mode="navigate"
+          />
+
+          {/* Main Content */}
+          <div className="flex-1">
         <div className="text-center mb-16">
           <h2 className="text-5xl font-bold text-navy-dark mb-3">
             {t('home.title')}
@@ -132,6 +149,9 @@ export default function HomePage({ recentRecords }: { recentRecords: RecentRecor
             </div>
           </div>
         )}
+
+          </div>
+        </div>
 
         {/* Open Source Notice */}
         <div className="mt-16 text-center max-w-3xl mx-auto">

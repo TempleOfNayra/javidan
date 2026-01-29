@@ -2,6 +2,37 @@ import { sql } from '@/lib/db';
 import HomePage from '@/components/HomePage';
 import Footer from '@/components/Footer';
 
+type Category = 'victims' | 'agents' | 'forces' | 'videos' | 'documents';
+
+async function getCategoryCounts(): Promise<Record<Category, number>> {
+  try {
+    const [victimsCount, agentsCount, forcesCount, videosCount, documentsCount] = await Promise.all([
+      sql`SELECT COUNT(*) as count FROM records`,
+      sql`SELECT COUNT(*) as count FROM ir_agents`,
+      sql`SELECT COUNT(*) as count FROM security_forces`,
+      sql`SELECT COUNT(*) as count FROM videos`,
+      sql`SELECT COUNT(*) as count FROM documents`,
+    ]);
+
+    return {
+      victims: Number(victimsCount.rows[0]?.count || 0),
+      agents: Number(agentsCount.rows[0]?.count || 0),
+      forces: Number(forcesCount.rows[0]?.count || 0),
+      videos: Number(videosCount.rows[0]?.count || 0),
+      documents: Number(documentsCount.rows[0]?.count || 0),
+    };
+  } catch (error) {
+    console.error('[HOME PAGE] Error fetching category counts:', error);
+    return {
+      victims: 0,
+      agents: 0,
+      forces: 0,
+      videos: 0,
+      documents: 0,
+    };
+  }
+}
+
 async function getRecentRecords() {
   try {
     console.log('[HOME PAGE] Starting to fetch recent records...');
@@ -48,12 +79,15 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function Home() {
-  const recentRecords = await getRecentRecords();
+  const [recentRecords, categoryCounts] = await Promise.all([
+    getRecentRecords(),
+    getCategoryCounts(),
+  ]);
 
   return (
     <div className="min-h-screen bg-white">
       {/* Client Component with Header, Modal, and Content */}
-      <HomePage recentRecords={recentRecords} />
+      <HomePage recentRecords={recentRecords} categoryCounts={categoryCounts} />
 
       {/* Footer */}
       <Footer />

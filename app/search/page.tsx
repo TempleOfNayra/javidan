@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/lib/LanguageContext';
 import Header from '@/components/Header';
+import CategoryNav from '@/components/CategoryNav';
 
 type Category = 'victims' | 'agents' | 'forces' | 'videos' | 'documents';
 
@@ -58,9 +60,12 @@ const categoryLabels: Record<Category, { en: string; fa: string }> = {
   documents: { en: 'Documents', fa: 'اسناد' },
 };
 
-export default function SearchPage() {
+function SearchPageContent() {
   const { t, language } = useLanguage();
-  const [selectedCategory, setSelectedCategory] = useState<Category>('victims');
+  const searchParams = useSearchParams();
+  const categoryFromUrl = searchParams.get('category') as Category | null;
+
+  const [selectedCategory, setSelectedCategory] = useState<Category>(categoryFromUrl || 'victims');
   const [searchQuery, setSearchQuery] = useState('');
   const [allResults, setAllResults] = useState<SearchResult[]>([]);
   const [filteredResults, setFilteredResults] = useState<SearchResult[]>([]);
@@ -72,6 +77,13 @@ export default function SearchPage() {
     videos: 0,
     documents: 0,
   });
+
+  // Set category from URL on mount
+  useEffect(() => {
+    if (categoryFromUrl && (Object.keys(categoryLabels) as Category[]).includes(categoryFromUrl)) {
+      setSelectedCategory(categoryFromUrl);
+    }
+  }, [categoryFromUrl]);
 
   // Fetch category counts on mount
   useEffect(() => {
@@ -268,35 +280,12 @@ export default function SearchPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="flex gap-8">
           {/* Left Sidebar - Category Selection */}
-          <div className="w-64 flex-shrink-0">
-            <h2 className="text-xl font-bold text-navy-dark mb-4" dir={language === 'fa' ? 'rtl' : 'ltr'}>
-              {language === 'fa' ? 'جستجو در' : 'Search in'}
-            </h2>
-            <nav className="space-y-2">
-              {(Object.keys(categoryLabels) as Category[]).map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`w-full text-center px-4 py-3 rounded-lg transition-colors ${
-                    selectedCategory === category
-                      ? 'bg-gold text-navy-dark font-semibold'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <span>{categoryLabels[category][language]}</span>
-                    <span className={`text-sm ${
-                      selectedCategory === category
-                        ? 'text-navy-dark/70'
-                        : 'text-gray-500'
-                    }`}>
-                      ({categoryCounts[category]})
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </nav>
-          </div>
+          <CategoryNav
+            selectedCategory={selectedCategory}
+            categoryCounts={categoryCounts}
+            onCategoryClick={setSelectedCategory}
+            mode="callback"
+          />
 
           {/* Main Content - Search and Results */}
           <div className="flex-1">
@@ -452,5 +441,13 @@ export default function SearchPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }
