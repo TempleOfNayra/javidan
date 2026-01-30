@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { put } from '@vercel/blob';
+import { uploadToR2, generateFileKey } from '@/lib/r2';
+import { MediaFile } from '@/lib/types/record';
 
 export async function POST(
   request: NextRequest,
@@ -9,13 +10,6 @@ export async function POST(
   try {
     const { id } = await params;
     const forceId = parseInt(id);
-
-    if (isNaN(forceId)) {
-      return NextResponse.json(
-        { error: 'Invalid force ID' },
-        { status: 400 }
-      );
-    }
 
     // Verify force exists
     const forceCheck = await sql`
@@ -30,50 +24,49 @@ export async function POST(
     }
 
     const formData = await request.formData();
-    const files = formData.getAll('files') as File[];
+    const submitterTwitterId = formData.get('submitterTwitterId') as string | null;
 
-    if (!files || files.length === 0) {
+    let uploadedFiles: Array<any> = [];
+
+    // Get pre-uploaded files metadata
+    const uploadedFilesStr = formData.get('uploadedFiles') as string | null;
+    if (uploadedFilesStr) {
+      uploadedFiles = JSON.parse(uploadedFilesStr);
+    } else {
+      // Fallback: Handle direct file uploads (for backward compatibility)
+      const files = formData.getAll('files') as File[];
+
+      for (const file of files) {
+        if (file.size > 0) {
+          let mediaType: 'image' | 'video' | 'document' = 'document';
+          if (file.type.startsWith('image/')) {
+            mediaType = 'image';
+          } else if (file.type.startsWith('video/')) {
+            mediaType = 'video';
+          }
+
+          const fileKey = generateFileKey(file.name, mediaType);
+          const publicUrl = await uploadToR2(file, fileKey, file.type);
+
+          uploadedFiles.push({
+            type: mediaType,
+            r2Key: fileKey,
+            publicUrl,
+            fileName: file.name,
+            fileSize: file.size,
+          });
+        }
+      }
+    }
+
+    if (uploadedFiles.length === 0) {
       return NextResponse.json(
-        { error: 'No files provided' },
+        { error: 'At least one file is required' },
         { status: 400 }
       );
     }
 
-    const uploadedFiles = [];
-
-    // Upload files to R2
-    for (const file of files) {
-      if (!(file instanceof File)) {
-        continue;
-      }
-
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      // Generate unique filename
-      const timestamp = Date.now();
-      const randomString = Math.random().toString(36).substring(7);
-      const extension = file.name.split('.').pop();
-      const fileName = `force-${forceId}-${timestamp}-${randomString}.${extension}`;
-
-      // Upload to R2
-      const blob = await put(fileName, buffer, {
-        access: 'public',
-        contentType: file.type,
-      });
-
-      const fileData = {
-        publicUrl: blob.url,
-        r2Key: fileName,
-        fileName: file.name,
-        fileSize: file.size,
-        type: file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'document',
-      };
-
-      uploadedFiles.push(fileData);
-    }
-
-    // Check if there's already a primary image
+    // Check if there's an existing primary image
     const existingPrimary = await sql`
       SELECT id FROM media
       WHERE security_force_id = ${forceId} AND is_primary = true
@@ -82,62 +75,49 @@ export async function POST(
 
     const hasPrimaryImage = existingPrimary.rows.length > 0;
 
-    // Insert media records - first image becomes primary if no primary exists
+    // Insert all media into database
     for (let i = 0; i < uploadedFiles.length; i++) {
       const fileData = uploadedFiles[i];
-      const isPrimary = i === 0 && fileData.type === 'image' && !hasPrimaryImage;
+      // Set first image as primary if it's an image
+      const isPrimary = i === 0 && fileData.type === 'image';
 
-      // If this is going to be primary, remove primary flag from existing media
+      // If this will be the new primary, unset the old primary first
       if (isPrimary && hasPrimaryImage) {
         await sql`
-          UPDATE media SET is_primary = false
+          UPDATE media
+          SET is_primary = false
           WHERE security_force_id = ${forceId} AND is_primary = true
         `;
       }
 
       await sql`
         INSERT INTO media (
-          security_force_id,
-          type,
-          r2_key,
-          public_url,
-          file_name,
-          file_size,
-          is_primary
+          security_force_id, type, r2_key, public_url, file_name, file_size, is_primary
         ) VALUES (
-          ${forceId},
-          ${fileData.type},
-          ${fileData.r2Key},
-          ${fileData.publicUrl},
-          ${fileData.fileName},
-          ${fileData.fileSize},
-          ${isPrimary}
+          ${forceId}, ${fileData.type}, ${fileData.r2Key}, ${fileData.publicUrl},
+          ${fileData.fileName}, ${fileData.fileSize}, ${isPrimary}
         )
       `;
     }
 
     // Update evidence count
-    const mediaCount = await sql`
-      SELECT COUNT(*) as count FROM media
-      WHERE security_force_id = ${forceId}
-    `;
-
     await sql`
       UPDATE security_forces
-      SET evidence_count = ${Number(mediaCount.rows[0]?.count || 0)}
+      SET evidence_count = evidence_count + ${uploadedFiles.length},
+          updated_at = NOW()
       WHERE id = ${forceId}
     `;
 
     return NextResponse.json({
       success: true,
-      message: 'Media uploaded successfully',
-      files: uploadedFiles,
+      filesUploaded: uploadedFiles.length,
+      message: 'Files uploaded successfully',
     });
 
   } catch (error) {
-    console.error('[FORCE ADD MEDIA] Error:', error);
+    console.error('Error adding media to security force:', error);
     return NextResponse.json(
-      { error: 'Failed to upload media' },
+      { error: 'Failed to upload files. Please try again.' },
       { status: 500 }
     );
   }

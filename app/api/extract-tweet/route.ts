@@ -94,9 +94,12 @@ async function extractProfileInfo(username: string) {
         // Get profile image - upgrade to highest quality available
         // Twitter profile image sizes: _normal (48x48), _bigger (73x73), _mini (24x24), _400x400 (400x400)
         let profileImage = user.profile_image_url_https || '';
+        console.log('[PROFILE EXTRACT] Original profile image URL:', profileImage);
+
         if (profileImage) {
           // Replace any size suffix with _400x400 for best quality
           profileImage = profileImage.replace(/_(normal|bigger|mini)\./, '_400x400.');
+          console.log('[PROFILE EXTRACT] Upgraded profile image URL:', profileImage);
         }
 
         return {
