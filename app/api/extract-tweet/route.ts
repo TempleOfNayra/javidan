@@ -91,10 +91,12 @@ async function extractProfileInfo(username: string) {
       const user = firstEntry.content?.tweet?.user;
 
       if (user) {
-        // Get profile image - replace _normal with _bigger for better quality
+        // Get profile image - upgrade to highest quality available
+        // Twitter profile image sizes: _normal (48x48), _bigger (73x73), _mini (24x24), _400x400 (400x400)
         let profileImage = user.profile_image_url_https || '';
-        if (profileImage.includes('_normal.')) {
-          profileImage = profileImage.replace('_normal.', '_bigger.');
+        if (profileImage) {
+          // Replace any size suffix with _400x400 for best quality
+          profileImage = profileImage.replace(/_(normal|bigger|mini)\./, '_400x400.');
         }
 
         return {
@@ -135,6 +137,7 @@ async function extractViaSyndicationAPI(tweetId: string) {
     }
 
     const data = await response.json();
+    console.log('[TWEET EXTRACT] Raw Twitter API response:', JSON.stringify(data, null, 2));
 
     // Extract information
     const result = {
@@ -154,7 +157,20 @@ async function extractViaSyndicationAPI(tweetId: string) {
 
     // Extract media
     if (data.photos && Array.isArray(data.photos)) {
-      result.images = data.photos.map((photo: any) => photo.url);
+      result.images = data.photos.map((photo: any) => {
+        let url = photo.url;
+        // Upgrade Twitter image quality to original
+        // Twitter URLs have format: https://pbs.twimg.com/media/[id]?format=jpg&name=small
+        // We want to change 'name=small' or 'name=medium' to 'name=orig' for best quality
+        if (url && url.includes('pbs.twimg.com')) {
+          url = url.replace(/([?&])name=(small|medium|large)/, '$1name=orig');
+          // If no name parameter exists, add it
+          if (!url.includes('name=')) {
+            url += (url.includes('?') ? '&' : '?') + 'name=orig';
+          }
+        }
+        return url;
+      });
     }
 
     if (data.video && data.video.variants) {
@@ -171,6 +187,7 @@ async function extractViaSyndicationAPI(tweetId: string) {
       }
     }
 
+    console.log('[TWEET EXTRACT] Extracted result:', JSON.stringify(result, null, 2));
     return result;
   } catch (error) {
     console.error('Syndication API error:', error);
@@ -221,10 +238,21 @@ export async function POST(request: NextRequest) {
             isProfile: true,
           },
         });
-      } catch (profileError) {
+      } catch (profileError: any) {
         console.error('Profile extraction error:', profileError);
 
-        // Fallback: Return minimal profile data with just the username
+        // Check if it's a rate limit error
+        if (profileError.message && profileError.message.includes('429')) {
+          return NextResponse.json(
+            {
+              error: 'Twitter rate limit reached. Please wait a few minutes and try again.',
+              isRateLimit: true
+            },
+            { status: 429 }
+          );
+        }
+
+        // Fallback: Return minimal profile data with just the username for other errors
         return NextResponse.json({
           success: true,
           data: {
@@ -245,8 +273,20 @@ export async function POST(request: NextRequest) {
     let result;
     try {
       result = await extractViaSyndicationAPI(tweetId);
-    } catch (syndicationError) {
+    } catch (syndicationError: any) {
       console.error('Syndication API failed:', syndicationError);
+
+      // Check if it's a rate limit error
+      if (syndicationError.message && syndicationError.message.includes('429')) {
+        return NextResponse.json(
+          {
+            error: 'Twitter rate limit reached. Please wait a few minutes and try again.',
+            isRateLimit: true
+          },
+          { status: 429 }
+        );
+      }
+
       return NextResponse.json(
         { error: 'Could not extract tweet information. Please try again later.' },
         { status: 500 }

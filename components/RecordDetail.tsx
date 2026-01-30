@@ -85,15 +85,44 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
           )}
 
           {/* Names - Side by Side */}
-          <div className="flex justify-between items-baseline w-full max-w-3xl mb-4">
-            <h1 className="text-5xl font-bold text-navy-dark" dir="rtl">
-              {record.fullName || 'نام نامشخص'}
-            </h1>
-            {record.fullNameEn && (
-              <h2 className="text-3xl font-semibold text-gray-600" dir="ltr">
-                {record.fullNameEn}
-              </h2>
-            )}
+          <div className="w-full max-w-3xl mb-4">
+            <div className="flex justify-between items-baseline mb-2">
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-5xl font-bold text-navy-dark" dir="rtl">
+                  {record.fullName || 'نام نامشخص'}
+                </h1>
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="full_name"
+                  fieldLabel="Full Name (Farsi)"
+                  currentValue={record.fullName}
+                />
+              </div>
+              {record.fullNameEn && (
+                <div className="flex items-baseline gap-2">
+                  <h2 className="text-3xl font-semibold text-gray-600" dir="ltr">
+                    {record.fullNameEn}
+                  </h2>
+                  <UpdateFieldButton
+                    recordType="victim"
+                    recordId={id}
+                    fieldName="full_name_en"
+                    fieldLabel="Full Name (English)"
+                    currentValue={record.fullNameEn}
+                  />
+                </div>
+              )}
+              {!record.fullNameEn && (
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="full_name_en"
+                  fieldLabel="Full Name (English)"
+                  currentValue={record.fullNameEn}
+                />
+              )}
+            </div>
           </div>
 
           {/* Verification Badge */}
@@ -109,33 +138,69 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Victim Status */}
-            {record.victimStatus && (
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  {t('victimStatus.title')}
-                </p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('victimStatus.title')}</span>
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="victim_status"
+                  fieldLabel={t('victimStatus.title')}
+                  fieldType="select"
+                  currentValue={record.victimStatus}
+                  options={[
+                    { value: 'executed', label: t('victimStatus.executed') },
+                    { value: 'killed', label: t('victimStatus.killed') },
+                    { value: 'incarcerated', label: t('victimStatus.incarcerated') },
+                    { value: 'disappeared', label: t('victimStatus.disappeared') },
+                    { value: 'injured', label: t('victimStatus.injured') },
+                    { value: 'other', label: t('victimStatus.other') },
+                  ]}
+                />
+              </p>
+              {record.victimStatus && (
                 <p className="text-lg text-gray-900">
                   {t(`victimStatus.${record.victimStatus}`)}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Gender */}
-            {record.gender && (
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  {t('form.gender')}
-                </p>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('form.gender')}</span>
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="gender"
+                  fieldLabel={t('form.gender')}
+                  fieldType="select"
+                  currentValue={record.gender}
+                  options={[
+                    { value: 'male', label: t('form.male') },
+                    { value: 'female', label: t('form.female') },
+                    { value: 'other', label: t('form.other') },
+                  ]}
+                />
+              </p>
+              {record.gender && (
                 <p className="text-lg text-gray-900">
                   {t(`form.${record.gender}`)}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Location */}
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">
-                {t('record.locationOfIncident')}
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('record.locationOfIncident')}</span>
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="location"
+                  fieldLabel={t('record.locationOfIncident')}
+                  currentValue={record.location}
+                />
               </p>
               <p className="text-lg text-gray-900">
                 {record.location}
@@ -146,16 +211,14 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
             <div>
               <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
                 <span>{t('record.birthYear')}</span>
-                {!record.birthYear && (
-                  <UpdateFieldButton
-                    recordType="victim"
-                    recordId={id}
-                    fieldName="birth_year"
-                    fieldLabel={t('record.birthYear')}
-                    fieldType="number"
-                    currentValue={record.birthYear}
-                  />
-                )}
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="birth_year"
+                  fieldLabel={t('record.birthYear')}
+                  fieldType="number"
+                  currentValue={record.birthYear}
+                />
               </p>
               {record.birthYear && (
                 <p className="text-lg text-gray-900">
@@ -168,16 +231,14 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
             <div>
               <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
                 <span>{t('form.age')}</span>
-                {!record.age && (
-                  <UpdateFieldButton
-                    recordType="victim"
-                    recordId={id}
-                    fieldName="age"
-                    fieldLabel={t('form.age')}
-                    fieldType="number"
-                    currentValue={record.age}
-                  />
-                )}
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="age"
+                  fieldLabel={t('form.age')}
+                  fieldType="number"
+                  currentValue={record.age}
+                />
               </p>
               {record.age && (
                 <p className="text-lg text-gray-900">
@@ -190,16 +251,14 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
             <div>
               <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
                 <span>{t('form.incidentDate')}</span>
-                {!record.incidentDate && (
-                  <UpdateFieldButton
-                    recordType="victim"
-                    recordId={id}
-                    fieldName="incident_date"
-                    fieldLabel={t('form.incidentDate')}
-                    fieldType="date"
-                    currentValue={record.incidentDate}
-                  />
-                )}
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="incident_date"
+                  fieldLabel={t('form.incidentDate')}
+                  fieldType="date"
+                  currentValue={record.incidentDate}
+                />
               </p>
               {record.incidentDate && (
                 <p className="text-lg text-gray-900">
@@ -212,15 +271,13 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
             <div>
               <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
                 <span>{t('record.nationalId')}</span>
-                {!record.nationalId && (
-                  <UpdateFieldButton
-                    recordType="victim"
-                    recordId={id}
-                    fieldName="national_id"
-                    fieldLabel={t('record.nationalId')}
-                    currentValue={record.nationalId}
-                  />
-                )}
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="national_id"
+                  fieldLabel={t('record.nationalId')}
+                  currentValue={record.nationalId}
+                />
               </p>
               {record.nationalId && (
                 <p className="text-lg text-gray-900" dir="ltr">
@@ -233,15 +290,13 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
             <div>
               <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
                 <span>{t('record.fatherName')}</span>
-                {!record.fatherName && (
-                  <UpdateFieldButton
-                    recordType="victim"
-                    recordId={id}
-                    fieldName="father_name"
-                    fieldLabel={t('record.fatherName')}
-                    currentValue={record.fatherName}
-                  />
-                )}
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="father_name"
+                  fieldLabel={t('record.fatherName')}
+                  currentValue={record.fatherName}
+                />
               </p>
               {record.fatherName && (
                 <p className="text-lg text-gray-900">
@@ -254,15 +309,13 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
             <div>
               <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
                 <span>{t('record.motherName')}</span>
-                {!record.motherName && (
-                  <UpdateFieldButton
-                    recordType="victim"
-                    recordId={id}
-                    fieldName="mother_name"
-                    fieldLabel={t('record.motherName')}
-                    currentValue={record.motherName}
-                  />
-                )}
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="mother_name"
+                  fieldLabel={t('record.motherName')}
+                  currentValue={record.motherName}
+                />
               </p>
               {record.motherName && (
                 <p className="text-lg text-gray-900">
@@ -272,23 +325,37 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
             </div>
 
             {/* Perpetrator */}
-            {record.perpetrator && (
-              <div className="md:col-span-2">
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  {t('record.perpetrator')}
-                </p>
+            <div className="md:col-span-2">
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('record.perpetrator')}</span>
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="perpetrator"
+                  fieldLabel={t('record.perpetrator')}
+                  currentValue={record.perpetrator}
+                />
+              </p>
+              {record.perpetrator && (
                 <p className="text-lg text-gray-900">
                   {record.perpetrator}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Tags */}
-            {record.hashtags && (
-              <div className="md:col-span-2">
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  {t('record.tags')}
-                </p>
+            <div className="md:col-span-2">
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('record.tags')}</span>
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="hashtags"
+                  fieldLabel={t('record.tags')}
+                  currentValue={record.hashtags}
+                />
+              </p>
+              {record.hashtags && (
                 <div className="flex flex-wrap gap-2">
                   {record.hashtags.split(',').map((tag: string, index: number) => (
                     <span
@@ -299,8 +366,8 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
                     </span>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* External References */}
             {record.twitterLinks && record.twitterLinks.length > 0 && (
@@ -327,16 +394,24 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
             )}
 
             {/* Additional Information */}
-            {record.additionalInfo && (
-              <div className="md:col-span-2">
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  {t('record.additionalInfo')}
-                </p>
+            <div className="md:col-span-2">
+              <p className="text-sm font-medium text-gray-500 mb-1 flex items-center gap-2">
+                <span>{t('record.additionalInfo')}</span>
+                <UpdateFieldButton
+                  recordType="victim"
+                  recordId={id}
+                  fieldName="additional_info"
+                  fieldLabel={t('record.additionalInfo')}
+                  fieldType="textarea"
+                  currentValue={record.additionalInfo}
+                />
+              </p>
+              {record.additionalInfo && (
                 <p className="text-lg text-gray-900 whitespace-pre-wrap">
                   {record.additionalInfo}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
