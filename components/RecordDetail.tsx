@@ -146,7 +146,6 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
                   recordId={id}
                   fieldName="victim_status"
                   fieldLabel={t('victimStatus.title')}
-                  fieldType="select"
                   currentValue={record.victimStatus}
                   options={[
                     { value: 'executed', label: t('victimStatus.executed') },
@@ -174,7 +173,6 @@ export default function RecordDetail({ record, id }: RecordDetailProps) {
                   recordId={id}
                   fieldName="gender"
                   fieldLabel={t('form.gender')}
-                  fieldType="select"
                   currentValue={record.gender}
                   options={[
                     { value: 'male', label: t('form.male') },

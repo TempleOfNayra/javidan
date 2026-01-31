@@ -7,8 +7,9 @@ interface UpdateFieldButtonProps {
   recordId: string;
   fieldName: string;
   fieldLabel: string;
-  fieldType?: 'text' | 'number' | 'date';
+  fieldType?: 'text' | 'number' | 'date' | 'textarea';
   currentValue?: string | number | null;
+  options?: Array<{ value: string; label: string }>;
 }
 
 export default function UpdateFieldButton({
@@ -18,6 +19,7 @@ export default function UpdateFieldButton({
   fieldLabel,
   fieldType = 'text',
   currentValue,
+  options,
 }: UpdateFieldButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [value, setValue] = useState('');
@@ -25,10 +27,8 @@ export default function UpdateFieldButton({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Don't show button if field already has a value
-  if (currentValue !== null && currentValue !== '' && currentValue !== undefined) {
-    return null;
-  }
+  // Show button for dev admins to edit all fields
+  // (removed the early return that was hiding buttons for filled fields)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,14 +106,40 @@ export default function UpdateFieldButton({
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   {fieldLabel}
                 </label>
-                <input
-                  type={fieldType}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                  disabled={isSubmitting}
-                  autoFocus
-                />
+                {options ? (
+                  <select
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                    disabled={isSubmitting}
+                    autoFocus
+                  >
+                    <option value="">انتخاب کنید...</option>
+                    {options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : fieldType === 'textarea' ? (
+                  <textarea
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    rows={5}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                    disabled={isSubmitting}
+                    autoFocus
+                  />
+                ) : (
+                  <input
+                    type={fieldType}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                    disabled={isSubmitting}
+                    autoFocus
+                  />
+                )}
               </div>
 
               <div>
