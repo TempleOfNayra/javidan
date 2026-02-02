@@ -116,7 +116,7 @@ export default async function SecurityForcePage({
                       alt={force.fullName || force.fullNameEn || 'نام نامشخص'}
                       className="w-48 h-48 object-cover rounded-lg border-2 border-gray-200"
                     />
-                    <AddProfilePicture agentId={force._id} hasExistingPhoto={true} />
+                    <AddProfilePicture agentId={force._id} hasExistingPhoto={true} recordType="force" />
                   </div>
                 ) : (
                   <div>
@@ -126,7 +126,7 @@ export default async function SecurityForcePage({
                         بدون تصویر
                       </p>
                     </div>
-                    <AddProfilePicture agentId={force._id} hasExistingPhoto={false} />
+                    <AddProfilePicture agentId={force._id} hasExistingPhoto={false} recordType="force" />
                   </div>
                 )}
               </div>

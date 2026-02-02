@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation';
 interface AddProfilePictureProps {
   agentId: string;
   hasExistingPhoto?: boolean;
+  recordType?: 'agent' | 'force';
 }
 
-export default function AddProfilePicture({ agentId, hasExistingPhoto = false }: AddProfilePictureProps) {
+export default function AddProfilePicture({ agentId, hasExistingPhoto = false, recordType = 'agent' }: AddProfilePictureProps) {
   const isDev = process.env.NODE_ENV === 'development';
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -75,7 +76,11 @@ export default function AddProfilePicture({ agentId, hasExistingPhoto = false }:
       const formData = new FormData();
       formData.append('uploadedFiles', JSON.stringify([fileMetadata]));
 
-      const response = await fetch(`/api/agents/${agentId}/add-media`, {
+      const endpoint = recordType === 'force'
+        ? `/api/forces/${agentId}/add-media`
+        : `/api/agents/${agentId}/add-media`;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
       });
@@ -112,7 +117,11 @@ export default function AddProfilePicture({ agentId, hasExistingPhoto = false }:
     setMessage(null);
 
     try {
-      const response = await fetch(`/api/agents/${agentId}/delete-primary-media`, {
+      const deleteEndpoint = recordType === 'force'
+        ? `/api/forces/${agentId}/delete-primary-media`
+        : `/api/agents/${agentId}/delete-primary-media`;
+
+      const response = await fetch(deleteEndpoint, {
         method: 'DELETE',
       });
 
