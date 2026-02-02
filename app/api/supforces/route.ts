@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     const result = await sql`
       SELECT sf.*,
-        (SELECT json_agg(json_build_object('url', m.public_url, 'type', m.type))
+        (SELECT json_agg(json_build_object('url', m.public_url, 'type', m.type, 'isPrimary', m.is_primary))
          FROM media m
          WHERE m.security_force_id = sf.id
         ) as media

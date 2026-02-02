@@ -218,6 +218,11 @@ function SearchPageContent() {
 
   const getResultImage = (result: SearchResult) => {
     if (result.media && result.media.length > 0) {
+      // First try to find the primary image
+      const primaryImage = result.media.find(m => m.type === 'image' && (m as any).isPrimary);
+      if (primaryImage) return primaryImage.url;
+
+      // Fallback to first image if no primary is set
       const imageMedia = result.media.find(m => m.type === 'image');
       if (imageMedia) return imageMedia.url;
     }
